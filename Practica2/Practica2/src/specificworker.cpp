@@ -17,8 +17,10 @@
  *    along with RoboComp.  If not, see <http://www.gnu.org/licenses/>.
  */
 #include "specificworker.h"
+#include <math.h>
 
-static float rot =1;
+static float rot =1.5,rotanterior = 1.5;
+static float decremento = 0.015;
 
 /**
 * \brief Default constructor
@@ -74,12 +76,10 @@ void SpecificWorker::initialize(int period)
 void SpecificWorker::compute()
 {
     try{
-        auto ldata = this->laser_proxy->getLaserData();
-        std::sort( ldata.begin(), ldata.end(), [](RoboCompLaser::TData a, RoboCompLaser::TData b){ return     a.dist < b.dist; }) ;
+        //auto ldata = this->laser_proxy->getLaserData();
+        //std::sort( ldata.begin(), ldata.end(), [](RoboCompLaser::TData a, RoboCompLaser::TData b){ return     a.dist < b.dist; }) ;
 
-        this->differentialrobot_proxy->setSpeedBase(500,rot);
-        rot = rot - 0.001;
-        qInfo()<<rot;
+        this->espiral();
 
 
         /*for(auto &l : ldata){
@@ -104,6 +104,17 @@ void SpecificWorker::compute()
 	//}
 	
 	
+}
+
+void SpecificWorker::espiral() {
+    this->differentialrobot_proxy->setSpeedBase(500,rot);
+    rot = rot - decremento;
+    if (rot <rotanterior*0.5){
+        rotanterior = rot;
+        decremento = rot/100;
+    }
+
+    qInfo()<<rot;
 }
 
 int SpecificWorker::startup_check()

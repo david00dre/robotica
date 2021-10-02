@@ -23,6 +23,8 @@ boost/format.hpp
 /home/david/robotica/Practica2/Practica2/src/specificworker.cpp
 specificworker.h
 /home/david/robotica/Practica2/Practica2/src/specificworker.h
+math.h
+-
 
 /home/david/robotica/Practica2/Practica2/src/specificworker.h
 genericworker.h
