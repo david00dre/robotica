@@ -25,6 +25,10 @@ specificworker.h
 /home/david/robotica/Practica2/Practica2/src/specificworker.h
 math.h
 -
+stdlib.h
+-
+time.h
+-
 
 /home/david/robotica/Practica2/Practica2/src/specificworker.h
 genericworker.h

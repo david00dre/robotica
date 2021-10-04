@@ -18,8 +18,14 @@
  */
 #include "specificworker.h"
 #include <math.h>
+#include <stdlib.h>
+#include <time.h>
 
-static float rot =1.5,rotanterior = 1.5;
+static float threshold = 400;
+static bool espiralInicial = true;
+
+//Variables para la espiral
+static float rot =3,rotanterior = 3;
 static float decremento = 0.015;
 
 /**
@@ -76,17 +82,31 @@ void SpecificWorker::initialize(int period)
 void SpecificWorker::compute()
 {
     try{
-        //auto ldata = this->laser_proxy->getLaserData();
-        //std::sort( ldata.begin(), ldata.end(), [](RoboCompLaser::TData a, RoboCompLaser::TData b){ return     a.dist < b.dist; }) ;
-
-        this->espiral();
-
-
-        /*for(auto &l : ldata){
-            qInfo()<< l.dist << l.angle;
-        }*/
+        auto ldata = this->laser_proxy->getLaserData();
+        std::sort( ldata.begin(), ldata.end(), [](RoboCompLaser::TData a, RoboCompLaser::TData b){ return     a.dist < b.dist; }) ;
+        std::cout<<"distancia: "<<ldata.front().dist<<std::endl;
 
 
+        if(!espiralInicial) {
+
+            //Frena cuando esta cerca de un obstaculo
+            if (ldata.front().dist < threshold + 200) {
+                this->differentialrobot_proxy->setSpeedBase(50, 0);
+                std::cout << "frena" << std::endl;
+            }else
+                this->differentialrobot_proxy->setSpeedBase(600, 0);
+
+            //Si encuentra un obstaculo gira
+            if (ldata.front().dist < threshold) {
+                std::cout << "giro" << std::endl;
+                this->giroAleatorio();
+
+            }
+        }else {
+            espiral();
+            if(ldata.front().dist <threshold+200)
+                espiralInicial = false;
+        }
     }catch(const Ice::Exception &e){
         std::cout << "Error reading from Camera" << e << std::endl;
     }
@@ -107,14 +127,25 @@ void SpecificWorker::compute()
 }
 
 void SpecificWorker::espiral() {
+    std::cout<<"espiral"<<std::endl;
     this->differentialrobot_proxy->setSpeedBase(500,rot);
     rot = rot - decremento;
     if (rot <rotanterior*0.5){
         rotanterior = rot;
-        decremento = rot/100;
+        decremento = rot/500;
     }
 
-    qInfo()<<rot;
+}
+
+void SpecificWorker::giroAleatorio() {
+    srand(time(NULL));
+
+    differentialrobot_proxy->setSpeedBase(5, rot);
+    usleep(500000 + rand() % (1500000 +1 - 500000 ));
+    differentialrobot_proxy->setSpeedBase(100, 0);
+    usleep(500000);
+    differentialrobot_proxy->setSpeedBase(600, 0);
+
 }
 
 int SpecificWorker::startup_check()
@@ -123,6 +154,8 @@ int SpecificWorker::startup_check()
 	QTimer::singleShot(200, qApp, SLOT(quit()));
 	return 0;
 }
+
+
 
 
 
