@@ -21,8 +21,8 @@
 #include <stdlib.h>
 #include <time.h>
 
-static float threshold = 400;
-static bool espiralInicial = true;
+static float threshold = 300;
+static float espiralInicial = 1;
 
 //Variables para la espiral
 static float rot =3,rotanterior = 3;
@@ -84,27 +84,27 @@ void SpecificWorker::compute()
     try{
         auto ldata = this->laser_proxy->getLaserData();
         std::sort( ldata.begin(), ldata.end(), [](RoboCompLaser::TData a, RoboCompLaser::TData b){ return     a.dist < b.dist; }) ;
+        ldata.erase(ldata.begin());
+        ldata.erase(ldata.begin());
         std::cout<<"distancia: "<<ldata.front().dist<<std::endl;
 
 
         if(!espiralInicial) {
 
             //Frena cuando esta cerca de un obstaculo
-            if (ldata.front().dist < threshold + 200) {
+            if (ldata.front().dist < threshold + 10 && ldata.front().dist!=0) {
                 this->differentialrobot_proxy->setSpeedBase(50, 0);
-                std::cout << "frena" << std::endl;
             }else
-                this->differentialrobot_proxy->setSpeedBase(600, 0);
+                this->differentialrobot_proxy->setSpeedBase(400, 0);
 
             //Si encuentra un obstaculo gira
-            if (ldata.front().dist < threshold) {
-                std::cout << "giro" << std::endl;
+            if (ldata.front().dist < threshold && ldata.front().dist!=0) {
                 this->giroAleatorio();
 
             }
         }else {
             espiral();
-            if(ldata.front().dist <threshold+200)
+            if(ldata.front().dist <threshold+200 && ldata.front().dist!=0)
                 espiralInicial = false;
         }
     }catch(const Ice::Exception &e){
@@ -127,7 +127,6 @@ void SpecificWorker::compute()
 }
 
 void SpecificWorker::espiral() {
-    std::cout<<"espiral"<<std::endl;
     this->differentialrobot_proxy->setSpeedBase(500,rot);
     rot = rot - decremento;
     if (rot <rotanterior*0.5){
@@ -141,10 +140,10 @@ void SpecificWorker::giroAleatorio() {
     srand(time(NULL));
 
     differentialrobot_proxy->setSpeedBase(5, rot);
-    usleep(500000 + rand() % (1500000 +1 - 500000 ));
+    usleep(500000 + rand() % (1250000 +1 - 750000 ));
     differentialrobot_proxy->setSpeedBase(100, 0);
     usleep(500000);
-    differentialrobot_proxy->setSpeedBase(600, 0);
+    differentialrobot_proxy->setSpeedBase(400, 0);
 
 }
 

@@ -3,23 +3,23 @@
 /home/david/robotica/Practica2/Practica2/src/specificworker.cpp
 /home/david/robocomp/classes/qlog/qlog.cpp
 /home/david/robocomp/classes/qlog/qlog.h
-/home/david/robocomp/classes/sigwatch/sigwatch.h
- mmc:Q_OBJECT
-/home/david/robotica/Practica2/Practica2/src/specificmonitor.h
- mmc:Q_OBJECT
-/home/david/robocomp/classes/rapplication/rapplication.h
-/home/david/robotica/Practica2/Practica2/src/genericworker.cpp
-/home/david/robotica/Practica2/Practica2/src/genericworker.h
- mmc:Q_OBJECT
- uic:ui_mainUI.h
-/home/david/robotica/Practica2/Practica2/src/main.cpp
 /home/david/robotica/Practica2/Practica2/src/commonbehaviorI.cpp
 /home/david/robotica/Practica2/Practica2/src/specificmonitor.cpp
-/home/david/robotica/Practica2/Practica2/src/commonbehaviorI.h
-/home/david/robotica/Practica2/Practica2/src/specificworker.h
- mmc:Q_OBJECT
-/home/david/robocomp/classes/rapplication/rapplication.cpp
+/home/david/robocomp/classes/rapplication/rapplication.h
+/home/david/robotica/Practica2/Practica2/src/genericworker.cpp
 /home/david/robotica/Practica2/Practica2/src/genericmonitor.h
  mmc:Q_OBJECT
 /home/david/robocomp/classes/sigwatch/sigwatch.cpp
  miu:moc_sigwatch.cpp
+/home/david/robotica/Practica2/Practica2/src/specificmonitor.h
+ mmc:Q_OBJECT
+/home/david/robocomp/classes/sigwatch/sigwatch.h
+ mmc:Q_OBJECT
+/home/david/robotica/Practica2/Practica2/src/specificworker.h
+ mmc:Q_OBJECT
+/home/david/robotica/Practica2/Practica2/src/commonbehaviorI.h
+/home/david/robocomp/classes/rapplication/rapplication.cpp
+/home/david/robotica/Practica2/Practica2/src/main.cpp
+/home/david/robotica/Practica2/Practica2/src/genericworker.h
+ mmc:Q_OBJECT
+ uic:ui_mainUI.h
