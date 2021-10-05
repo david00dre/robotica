@@ -21,7 +21,7 @@
 #include <stdlib.h>
 #include <time.h>
 
-static float threshold = 350;
+static float threshold = 400;
 static float espiralInicial = true;
 
 //Variables para la espiral
@@ -75,17 +75,18 @@ void SpecificWorker::initialize(int period)
 	}
 
 }
-
 void SpecificWorker::compute()
 {
     try{
         auto ldata = this->laser_proxy->getLaserData();
         std::sort( ldata.begin(), ldata.end(), [](RoboCompLaser::TData a, RoboCompLaser::TData b){ return     a.dist < b.dist; }) ;
-        for(int i=1;i<10;i++) ldata.erase(ldata.begin());
+
+        for(int i=1;i<15;i++) ldata.erase(ldata.begin());
         std::cout<<"distancia: "<<ldata.front().dist<<std::endl;
 
 
         if(!espiralInicial) {
+
 
             //Frena cuando esta cerca de un obstaculo
             if (ldata.front().dist < threshold + 200 && ldata.front().dist!=0)
@@ -94,8 +95,12 @@ void SpecificWorker::compute()
             //Si encuentra un obstaculo gira
             if (ldata.front().dist < threshold && ldata.front().dist!=0) {
                 this->giroAleatorio();
-
             }
+
+            //en caso contrario, sigue
+            if(ldata.front().dist > threshold + 200 )
+                this->differentialrobot_proxy->setSpeedBase(1000,0);
+
         }else {
             espiral();
             if(ldata.front().dist <threshold+200 && ldata.front().dist!=0)
@@ -136,7 +141,7 @@ void SpecificWorker::giroAleatorio() {
     differentialrobot_proxy->setSpeedBase(0, 3.14);
     usleep(850000 + rand() % (1150000 +1 - 850000 ));
     differentialrobot_proxy->setSpeedBase(100, 0);
-    usleep(500000);
+    usleep(1500000);
     differentialrobot_proxy->setSpeedBase(400, 0);
 
 }
@@ -145,11 +150,11 @@ void SpecificWorker::frena(float front) {
     if(front<threshold+200)
         this->differentialrobot_proxy->setSpeedBase(500,0);
     else if(front<threshold+150)
-        this->differentialrobot_proxy->setSpeedBase(350,0);
+        this->differentialrobot_proxy->setSpeedBase(300,0);
     else if(front<threshold+100)
-        this->differentialrobot_proxy->setSpeedBase(250,0);
+        this->differentialrobot_proxy->setSpeedBase(150,0);
     else if(front<threshold+50)
-        this->differentialrobot_proxy->setSpeedBase(100,0);
+        this->differentialrobot_proxy->setSpeedBase(50,0);
 
 }
 
