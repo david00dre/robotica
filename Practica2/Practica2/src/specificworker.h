@@ -49,6 +49,7 @@ private:
 	bool startup_check_flag;
     void espiral();
     void giroAleatorio();
+    void frena(float front);
 
 };
 

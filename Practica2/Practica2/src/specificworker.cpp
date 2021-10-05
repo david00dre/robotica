@@ -21,8 +21,8 @@
 #include <stdlib.h>
 #include <time.h>
 
-static float threshold = 300;
-static float espiralInicial = 1;
+static float threshold = 350;
+static float espiralInicial = true;
 
 //Variables para la espiral
 static float rot =3,rotanterior = 3;
@@ -56,13 +56,10 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 //	}
 //	catch(const std::exception &e) { qFatal("Error reading config params"); }
 
-
-
-
-
-
 	return true;
 }
+
+
 
 void SpecificWorker::initialize(int period)
 {
@@ -84,18 +81,15 @@ void SpecificWorker::compute()
     try{
         auto ldata = this->laser_proxy->getLaserData();
         std::sort( ldata.begin(), ldata.end(), [](RoboCompLaser::TData a, RoboCompLaser::TData b){ return     a.dist < b.dist; }) ;
-        ldata.erase(ldata.begin());
-        ldata.erase(ldata.begin());
+        for(int i=1;i<10;i++) ldata.erase(ldata.begin());
         std::cout<<"distancia: "<<ldata.front().dist<<std::endl;
 
 
         if(!espiralInicial) {
 
             //Frena cuando esta cerca de un obstaculo
-            if (ldata.front().dist < threshold + 10 && ldata.front().dist!=0) {
-                this->differentialrobot_proxy->setSpeedBase(50, 0);
-            }else
-                this->differentialrobot_proxy->setSpeedBase(400, 0);
+            if (ldata.front().dist < threshold + 200 && ldata.front().dist!=0)
+                frena(ldata.front().dist);
 
             //Si encuentra un obstaculo gira
             if (ldata.front().dist < threshold && ldata.front().dist!=0) {
@@ -127,7 +121,7 @@ void SpecificWorker::compute()
 }
 
 void SpecificWorker::espiral() {
-    this->differentialrobot_proxy->setSpeedBase(500,rot);
+    this->differentialrobot_proxy->setSpeedBase(550,rot);
     rot = rot - decremento;
     if (rot <rotanterior*0.5){
         rotanterior = rot;
@@ -139,11 +133,23 @@ void SpecificWorker::espiral() {
 void SpecificWorker::giroAleatorio() {
     srand(time(NULL));
 
-    differentialrobot_proxy->setSpeedBase(5, rot);
-    usleep(500000 + rand() % (1250000 +1 - 750000 ));
+    differentialrobot_proxy->setSpeedBase(0, 3.14);
+    usleep(850000 + rand() % (1150000 +1 - 850000 ));
     differentialrobot_proxy->setSpeedBase(100, 0);
     usleep(500000);
     differentialrobot_proxy->setSpeedBase(400, 0);
+
+}
+
+void SpecificWorker::frena(float front) {
+    if(front<threshold+200)
+        this->differentialrobot_proxy->setSpeedBase(500,0);
+    else if(front<threshold+150)
+        this->differentialrobot_proxy->setSpeedBase(350,0);
+    else if(front<threshold+100)
+        this->differentialrobot_proxy->setSpeedBase(250,0);
+    else if(front<threshold+50)
+        this->differentialrobot_proxy->setSpeedBase(100,0);
 
 }
 
