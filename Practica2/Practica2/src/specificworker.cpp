@@ -21,7 +21,7 @@
 #include <stdlib.h>
 #include <time.h>
 
-static float threshold = 400;
+static float threshold = 500;
 static float espiralInicial = true;
 
 //Variables para la espiral
@@ -137,13 +137,29 @@ void SpecificWorker::espiral() {
 
 void SpecificWorker::giroAleatorio() {
     srand(time(NULL));
-
-    differentialrobot_proxy->setSpeedBase(0, 3.14);
-    usleep(850000 + rand() % (1150000 +1 - 850000 ));
-    differentialrobot_proxy->setSpeedBase(100, 0);
-    usleep(1500000);
-    differentialrobot_proxy->setSpeedBase(400, 0);
-
+    float aux,dist;
+    int sup = 3000000,inf = 2000000;
+    if ((rand() % 2) == 0) {
+        aux = -1;
+        qInfo()<<"izquierda";
+    }
+    else {
+        qInfo()<<"derecha";
+        aux = 1;
+    }
+    do {
+        differentialrobot_proxy->setSpeedBase(0, 1.5);
+        usleep(inf + rand() % (sup - inf));
+        //usleep(2000000);
+        differentialrobot_proxy->setSpeedBase(350, 0);
+        usleep(2000000);
+        auto ldata = this->laser_proxy->getLaserData();
+        std::sort(ldata.begin(), ldata.end(),
+                  [](RoboCompLaser::TData a, RoboCompLaser::TData b) { return a.dist < b.dist; });
+        for (int i = 1; i < 20; i++) ldata.erase(ldata.begin());
+        dist = ldata.front().dist;
+        inf = inf/2;sup = sup/2;
+    }while(dist <threshold);
 }
 
 void SpecificWorker::frena(float front) {
