@@ -18,8 +18,8 @@
  */
 
 /**
-	\brief
-	@author authorname
+ \brief
+ @author authorname
 */
 
 
@@ -31,30 +31,38 @@
 #include <innermodel/innermodel.h>
 #include <abstract_graphic_viewer/abstract_graphic_viewer.h>
 
+struct Target{
+    QPointF pos;
+    bool activo = false;
+};
+
 class SpecificWorker : public GenericWorker
 {
 Q_OBJECT
 public:
-	SpecificWorker(TuplePrx tprx, bool startup_check);
-	~SpecificWorker();
-	bool setParams(RoboCompCommonBehavior::ParameterList params);
+    SpecificWorker(TuplePrx tprx, bool startup_check);
+    ~SpecificWorker();
+    bool setParams(RoboCompCommonBehavior::ParameterList params);
+    void draw_laser(const RoboCompLaser::TLaserData &ldata);
+    QPointF goToRobot(RoboCompGenericBase::TBaseState bState, Target target);
 
 
 
 public slots:
-	void compute();
-	int startup_check();
-	void initialize(int period);
-    new_target_slot()
+    void compute();
+    int startup_check();
+    void initialize(int period);
+    void new_target_slot(QPointF p);
 private:
-	std::shared_ptr < InnerModel > innerModel;
-	bool startup_check_flag;
+    std::shared_ptr < InnerModel > innerModel;
+    bool startup_check_flag;
     AbstractGraphicViewer *viewer;
     const int ROBOT_LENGTH = 400;
     QGraphicsPolygonItem *robot_polygon;
     QGraphicsRectItem *laser_in_robot_polygon;
+
+    Target target;
     QPointF last_point;
-    QRectF dimensions;
 };
 
 #endif

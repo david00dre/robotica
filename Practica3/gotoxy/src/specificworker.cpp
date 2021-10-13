@@ -17,13 +17,13 @@
  *    along with RoboComp.  If not, see <http://www.gnu.org/licenses/>.
  */
 #include "specificworker.h"
-
+static const float velmax = 1000;
 /**
 * \brief Default constructor
 */
 SpecificWorker::SpecificWorker(TuplePrx tprx, bool startup_check) : GenericWorker(tprx)
 {
-	this->startup_check_flag = startup_check;
+    this->startup_check_flag = startup_check;
 }
 
 /**
@@ -31,32 +31,33 @@ SpecificWorker::SpecificWorker(TuplePrx tprx, bool startup_check) : GenericWorke
 */
 SpecificWorker::~SpecificWorker()
 {
-	std::cout << "Destroying SpecificWorker" << std::endl;
+    std::cout << "Destroying SpecificWorker" << std::endl;
 }
 
 bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 {
-//	THE FOLLOWING IS JUST AN EXAMPLE
-//	To use innerModelPath parameter you should uncomment specificmonitor.cpp readConfig method content
-//	try
-//	{
-//		RoboCompCommonBehavior::Parameter par = params.at("InnerModelPath");
-//		std::string innermodel_path = par.value;
-//		innerModel = std::make_shared(innermodel_path);
-//	}
-//	catch(const std::exception &e) { qFatal("Error reading config params"); }
+// THE FOLLOWING IS JUST AN EXAMPLE
+// To use innerModelPath parameter you should uncomment specificmonitor.cpp readConfig method content
+// try
+// {
+//  RoboCompCommonBehavior::Parameter par = params.at("InnerModelPath");
+//  std::string innermodel_path = par.value;
+//  innerModel = std::make_shared(innermodel_path);
+// }
+// catch(const std::exception &e) { qFatal("Error reading config params"); }
 
 
 
 
 
 
-	return true;
+    return true;
 }
 
 void SpecificWorker::initialize(int period)
 {
-    viewer = new AbstractGraphicViewer(this, this->dimensions);
+    QRect dimensions(-5000, -2500, 10000, 5000);
+    viewer = new AbstractGraphicViewer(this, dimensions);
     this->resize(900,450);
     robot_polygon = viewer->add_robot(ROBOT_LENGTH);
     laser_in_robot_polygon = new QGraphicsRectItem(-10, 10, 20, 20, robot_polygon);
@@ -68,55 +69,82 @@ void SpecificWorker::initialize(int period)
         last_point = QPointF(bState.x, bState.z);
     }
     catch(const Ice::Exception &e) { std::cout << e.what() << std::endl;}
-//    connect(viewer, &AbstractGraphicViewer::new_mouse_coordinates, this, &SpecificWorker::new_target_slot);
-/*	std::cout << "Initialize worker" << std::endl;
-	this->Period = period;
-	if(this->startup_check_flag)
-	{
-		this->startup_check();
-	}
-	else
-	{
-		timer.start(Period);
-	}*/
+    connect(viewer, &AbstractGraphicViewer::new_mouse_coordinates, this, &SpecificWorker::new_target_slot);
+    std::cout << "Initialize worker" << std::endl;
+    this->Period = period;
+    if(this->startup_check_flag)
+    {
+        this->startup_check();
+    }
+    else
+    {
+        timer.start(Period);
+    }
 
 }
 
 void SpecificWorker::compute()
 {
 
-    try
-    {
+    try{
         RoboCompGenericBase::TBaseState bState;
         differentialrobot_proxy->getBaseState(bState);
         robot_polygon->setRotation(bState.alpha*180/M_PI);
         robot_polygon->setPos(bState.x, bState.z);
+        auto ldata = laser_proxy->getLaserData();
+        draw_laser(ldata);
+        if(target.activo) {
+            //pasar target a coordenadas del robot
+            QPointF punto= goToRobot(bState,target);
+            //calcular el angulo que forma el robot con el tagert
+            float beta = atan2(punto.x(),punto.y());
+            //calcular velocida1d de avance
+//          float vavance  = velmax * dist * beta//distancia al obtejivo
+            //ordenar  al robot
+        }
+    }catch(const Ice::Exception &e) { std::cout << e.what() << std::endl;}
+
+}
+
+QPointF SpecificWorker::goToRobot(RoboCompGenericBase::TBaseState bState, Target target) {
+    return QPointF();
+}
+
+void SpecificWorker::draw_laser(const RoboCompLaser::TLaserData &ldata) // robot coordinates
+{
+    static QGraphicsItem *laser_polygon = nullptr;
+    // code to delete any existing laser graphic element
+    if(laser_polygon != nullptr){
+        viewer->scene.removeItem(laser_polygon);
     }
-    catch(const Ice::Exception &e) { std::cout << e.what() << std::endl;}
 
+    QPolygonF poly;
+    // code to fill poly with the laser polar coordinates (angle, dist) transformed to cartesian coordinates (x,y), all in the robot's  // reference system
+    poly << QPointF(0,0);
+    for(auto &p : ldata){
+        float x = p.dist *sin(p.angle);
+        float y = p.dist *cos(p.angle);
+        poly << QPoint(x,y);
+    }
 
-
-	//computeCODE
-	//QMutexLocker locker(mutex);
-	//try
-	//{
-	//  camera_proxy->getYImage(0,img, cState, bState);
-	//  memcpy(image_gray.data, &img[0], m_width*m_height*sizeof(uchar));
-	//  searchTags(image_gray);
-	//}
-	//catch(const Ice::Exception &e)
-	//{
-	//  std::cout << "Error reading from Camera" << e << std::endl;
-	//}
-	
-	
+    QColor color("LightGreen");
+    color.setAlpha(40);
+    laser_polygon = viewer->scene.addPolygon(laser_in_robot_polygon->mapToScene(poly), QPen(QColor("DarkGreen"), 30), QBrush(color));
+    laser_polygon->setZValue(3);
 }
 
 int SpecificWorker::startup_check()
 {
-	std::cout << "Startup check" << std::endl;
-	QTimer::singleShot(200, qApp, SLOT(quit()));
-	return 0;
+    std::cout << "Startup check" << std::endl;
+    QTimer::singleShot(200, qApp, SLOT(quit()));
+    return 0;
+}
+
+void SpecificWorker::new_target_slot(QPointF p) {
+    qInfo()<< p;
+    last_point = QPointF(p.x(), p.y());
+    target.pos=p;
+    target.activo = true;
 }
 
 
@@ -147,4 +175,3 @@ int SpecificWorker::startup_check()
 // From the RoboCompLaser you can use this types:
 // RoboCompLaser::LaserConfData
 // RoboCompLaser::TData
-
