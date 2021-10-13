@@ -29,6 +29,7 @@
 
 #include <genericworker.h>
 #include <innermodel/innermodel.h>
+#include <abstract_graphic_viewer/abstract_graphic_viewer.h>
 
 class SpecificWorker : public GenericWorker
 {
@@ -44,10 +45,16 @@ public slots:
 	void compute();
 	int startup_check();
 	void initialize(int period);
+    new_target_slot()
 private:
 	std::shared_ptr < InnerModel > innerModel;
 	bool startup_check_flag;
-
+    AbstractGraphicViewer *viewer;
+    const int ROBOT_LENGTH = 400;
+    QGraphicsPolygonItem *robot_polygon;
+    QGraphicsRectItem *laser_in_robot_polygon;
+    QPointF last_point;
+    QRectF dimensions;
 };
 
 #endif
