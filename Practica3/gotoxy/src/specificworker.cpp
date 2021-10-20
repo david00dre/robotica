@@ -96,7 +96,7 @@ void SpecificWorker::compute()
         if(target.activo) {
             //pasar target a coordenadas del robot
             Eigen::Vector2f punto = goToRobot(bState);
-            viewer->scene.addItem(QPointF(punto.x(),punto.y()));
+            qInfo()<<"x: "<<punto.x()<<"y: "<<punto.y();
             //calcular el angulo que forma el robot con el tagert
             float beta = atan2(punto.x(),punto.y());
             //calcular velocidad de avance
