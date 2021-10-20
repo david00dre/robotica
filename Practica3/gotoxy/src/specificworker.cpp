@@ -96,6 +96,7 @@ void SpecificWorker::compute()
         if(target.activo) {
             //pasar target a coordenadas del robot
             Eigen::Vector2f punto = goToRobot(bState);
+            viewer->scene.addItem(QPointF(punto.x(),punto.y()));
             //calcular el angulo que forma el robot con el tagert
             float beta = atan2(punto.x(),punto.y());
             //calcular velocidad de avance
@@ -109,7 +110,11 @@ void SpecificWorker::compute()
 Eigen::Vector2f SpecificWorker::goToRobot(RoboCompGenericBase::TBaseState bState) {
     Eigen::Vector2f targ(target.pos.x(),target.pos.y());
     Eigen::Vector2f robot(bState.x,bState.z);
-    return targ-robot;
+    float alfa = bState.alpha;
+    Eigen::Matrix2f m;
+    m<<cos(alfa),-sin(alfa),sin(alfa),cos(alfa);
+    m.transpose();
+    return m*(targ-robot);
 }
 
 void SpecificWorker::draw_laser(const RoboCompLaser::TLaserData &ldata) // robot coordinates
