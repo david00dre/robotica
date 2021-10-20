@@ -95,19 +95,21 @@ void SpecificWorker::compute()
         draw_laser(ldata);
         if(target.activo) {
             //pasar target a coordenadas del robot
-            QPointF punto= goToRobot(bState,target);
+            Eigen::Vector2f punto = goToRobot(bState);
             //calcular el angulo que forma el robot con el tagert
             float beta = atan2(punto.x(),punto.y());
-            //calcular velocida1d de avance
-//          float vavance  = velmax * dist * beta//distancia al obtejivo
+            //calcular velocidad de avance
+//            float avance  = velmax * dist * beta//distancia al obtejivo
             //ordenar  al robot
         }
     }catch(const Ice::Exception &e) { std::cout << e.what() << std::endl;}
 
 }
 
-QPointF SpecificWorker::goToRobot(RoboCompGenericBase::TBaseState bState, Target target) {
-    return QPointF();
+Eigen::Vector2f SpecificWorker::goToRobot(RoboCompGenericBase::TBaseState bState) {
+    Eigen::Vector2f targ(target.pos.x(),target.pos.y());
+    Eigen::Vector2f robot(bState.x,bState.z);
+    return targ-robot;
 }
 
 void SpecificWorker::draw_laser(const RoboCompLaser::TLaserData &ldata) // robot coordinates

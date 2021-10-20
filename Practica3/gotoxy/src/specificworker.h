@@ -30,6 +30,8 @@
 #include <genericworker.h>
 #include <innermodel/innermodel.h>
 #include <abstract_graphic_viewer/abstract_graphic_viewer.h>
+#include <eigen3/Eigen/Dense>
+
 
 struct Target{
     QPointF pos;
@@ -44,7 +46,7 @@ public:
     ~SpecificWorker();
     bool setParams(RoboCompCommonBehavior::ParameterList params);
     void draw_laser(const RoboCompLaser::TLaserData &ldata);
-    QPointF goToRobot(RoboCompGenericBase::TBaseState bState, Target target);
+    Eigen::Vector2f goToRobot(RoboCompGenericBase::TBaseState bState);
 
 
 
