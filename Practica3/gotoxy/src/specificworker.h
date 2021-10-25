@@ -47,7 +47,6 @@ public:
     bool setParams(RoboCompCommonBehavior::ParameterList params);
     void draw_laser(const RoboCompLaser::TLaserData &ldata);
     Eigen::Vector2f goToRobot(RoboCompGenericBase::TBaseState bState);
-    void girar(float beta);
 
 
 

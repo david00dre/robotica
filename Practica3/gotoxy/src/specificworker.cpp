@@ -18,7 +18,6 @@
  */
 #include "specificworker.h"
 static const float velmax = 1000;
-static int estado = 0;
 /**
 * \brief Default constructor
 */
@@ -97,21 +96,22 @@ void SpecificWorker::compute()
         if(target.activo) {
             //pasar target a coordenadas del robot
             Eigen::Vector2f punto = goToRobot(bState);
-            qInfo()<<"x: "<<punto.x()<<"y: "<<punto.y();
+//            qInfo()<<"x: "<<punto.x()<<"y: "<<punto.y();
             //calcular el angulo que forma el robot con el tagert
             float beta = atan2(punto.x(),punto.y());
-            qInfo()<<beta;
-            if(beta>0.2 || beta<(-0.2))
-                estado = 1;
+            float dist = punto.norm();
+            float close_to_target;
+            if(dist>1000)
+                close_to_target=1;
             else
-                estado = 0;
-            switch(estado){
-                case 1: // 1 indica girar
-                    girar(beta);
-                    break;
-
-                default:;
-
+                close_to_target = dist/1000;
+            float expresion = exp(-(pow((beta),2)/0.15));
+            float adv_speed = 1000 * expresion * close_to_target;
+            qInfo()<<"x: "<<punto.x()<<"y: "<<punto.y()<<" Angulo: "<<beta<<" Dist: "<<dist<<" Velocidad de avance"<<adv_speed<<" Close_to: "<<close_to_target<<" cosa: "<<expresion ;
+            this->differentialrobot_proxy->setSpeedBase(adv_speed,beta);
+            if(dist <300) {
+                target.activo = false;
+                this->differentialrobot_proxy->setSpeedBase(0,0);
             }
 
             //calcular velocidad de avance
@@ -123,12 +123,13 @@ void SpecificWorker::compute()
 }
 
 Eigen::Vector2f SpecificWorker::goToRobot(RoboCompGenericBase::TBaseState bState) {
+    qInfo()<<target.pos.x()<<target.pos.y();
     Eigen::Vector2f targ(target.pos.x(),target.pos.y());
     Eigen::Vector2f robot(bState.x,bState.z);
     float alfa = bState.alpha;
     Eigen::Matrix2f m;
     m<<cos(alfa),-sin(alfa),sin(alfa),cos(alfa);
-    m.transpose();
+//    m.transpose();
     return m*(targ-robot);
 }
 
@@ -163,19 +164,11 @@ int SpecificWorker::startup_check()
 }
 
 void SpecificWorker::new_target_slot(QPointF p) {
-    qInfo()<< p;
+//    qInfo()<< p;
     last_point = QPointF(p.x(), p.y());
     target.pos=p;
     target.activo = true;
 }
-
-void SpecificWorker::girar(float beta) {
-    this->differentialrobot_proxy->setSpeedBase(0,beta*0.5);
-
-}
-
-
-
 
 /**************************************/
 // From the RoboCompDifferentialRobot you can call this methods:
