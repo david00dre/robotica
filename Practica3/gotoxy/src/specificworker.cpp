@@ -18,6 +18,7 @@
  */
 #include "specificworker.h"
 static const float velmax = 1000;
+static int estado = 0;
 /**
 * \brief Default constructor
 */
@@ -99,6 +100,20 @@ void SpecificWorker::compute()
             qInfo()<<"x: "<<punto.x()<<"y: "<<punto.y();
             //calcular el angulo que forma el robot con el tagert
             float beta = atan2(punto.x(),punto.y());
+            qInfo()<<beta;
+            if(beta>0.2 || beta<(-0.2))
+                estado = 1;
+            else
+                estado = 0;
+            switch(estado){
+                case 1: // 1 indica girar
+                    girar(beta);
+                    break;
+
+                default:;
+
+            }
+
             //calcular velocidad de avance
 //            float avance  = velmax * dist * beta//distancia al obtejivo
             //ordenar  al robot
@@ -152,6 +167,11 @@ void SpecificWorker::new_target_slot(QPointF p) {
     last_point = QPointF(p.x(), p.y());
     target.pos=p;
     target.activo = true;
+}
+
+void SpecificWorker::girar(float beta) {
+    this->differentialrobot_proxy->setSpeedBase(0,beta*0.5);
+
 }
 
 
