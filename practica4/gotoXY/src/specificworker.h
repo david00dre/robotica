@@ -43,7 +43,7 @@ public:
     SpecificWorker(TuplePrx tprx, bool startup_check);
     ~SpecificWorker();
     bool setParams(RoboCompCommonBehavior::ParameterList params);
-    void draw_laser(const RoboCompLaser::TLaserData &ldata);
+    bool draw_laser(const RoboCompLaser::TLaserData &ldata);
     Eigen::Vector2f goToRobot(RoboCompGenericBase::TBaseState bState);
 
 
@@ -72,7 +72,7 @@ private:
     QPointF last_point;
     void forward(RoboCompGenericBase::TBaseState bState, RoboCompLaser::TLaserData &ldata);
     void turn(const RoboCompLaser::TLaserData &ldata);
-    void border(const RoboCompLaser::TLaserData &ldata);
+    void border(const RoboCompLaser::TLaserData &ldata, bool contains);
 
 };
 

@@ -73,7 +73,7 @@ void SpecificWorker::compute() {
         robot_polygon->setRotation(bState.alpha * 180 / M_PI);
         robot_polygon->setPos(bState.x, bState.z);
         auto ldata = laser_proxy->getLaserData();
-        draw_laser(ldata);
+        bool contains = draw_laser(ldata);
         switch (state) {
             case State::IDLE:
                 qInfo()<<"IDLE";
@@ -89,7 +89,7 @@ void SpecificWorker::compute() {
                 break;
             case State::BORDER:
                 qInfo()<<"BORDER";
-                border(ldata);
+                border(ldata,contains);
                 break;
         }
     } catch (const Ice::Exception &e) { std::cout << e.what() << std::endl; }
@@ -113,8 +113,9 @@ Eigen::Vector2f SpecificWorker::goToRobot(RoboCompGenericBase::TBaseState bState
     return m.transpose() * (targ - robot);
 }
 
-void SpecificWorker::draw_laser(const RoboCompLaser::TLaserData &ldata) // robot coordinates
+bool SpecificWorker::draw_laser(const RoboCompLaser::TLaserData &ldata) // robot coordinates
 {
+    bool contains = false;
     static QGraphicsItem *laser_polygon = nullptr;
     // code to delete any existing laser graphic element
     if (laser_polygon != nullptr) {
@@ -128,11 +129,17 @@ void SpecificWorker::draw_laser(const RoboCompLaser::TLaserData &ldata) // robot
         float y = p.dist * cos(p.angle);
         poly << QPoint(x, y);
     }
+
+
     QColor color("LightGreen");
     color.setAlpha(40);
     laser_polygon = viewer->scene.addPolygon(laser_in_robot_polygon->mapToScene(poly), QPen(QColor("DarkGreen"), 30),
                                              QBrush(color));
     laser_polygon->setZValue(3);
+
+    if (poly.contains(target.pos))  // point to check. Must be in robot’s coordinate system
+        contains = true;
+    return contains;
 }
 
 int SpecificWorker::startup_check() {
@@ -175,12 +182,16 @@ void SpecificWorker::forward(RoboCompGenericBase::TBaseState bState, RoboCompLas
         state = State::IDLE;
     }
 }
-void SpecificWorker::border(const RoboCompLaser::TLaserData &ldata) {
-    if(ldata[ldata.size()/4].dist < 400)
-        this->differentialrobot_proxy->setSpeedBase(400, 0.5);
-    else if(ldata[ldata.size()/4].dist > 500)
-        this->differentialrobot_proxy->setSpeedBase(400, -0.5);
-    else
-        this->differentialrobot_proxy->setSpeedBase(400, 0);
+void SpecificWorker::border(const RoboCompLaser::TLaserData &ldata, bool contains) {
+    if(!contains) {
+        if (ldata[ldata.size() / 4].dist < 400)
+            this->differentialrobot_proxy->setSpeedBase(400, 0.5);
+        else if (ldata[ldata.size() / 4].dist > 500)
+            this->differentialrobot_proxy->setSpeedBase(400, -0.5);
+        else
+            this->differentialrobot_proxy->setSpeedBase(400, 0);
+    }else{
+        state = State::FORWARD;
+    }
 }
 
