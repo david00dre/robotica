@@ -20,29 +20,21 @@
 #include "math.h"
 #include "stdlib.h"
 #include "time.h"
-
-
-
-static const float velmax = 1000;
-
 /**
 * \brief Default constructor
 */
 SpecificWorker::SpecificWorker(TuplePrx tprx, bool startup_check) : GenericWorker(tprx) {
     this->startup_check_flag = startup_check;
 }
-
 /**
 * \brief Default destructor
 */
 SpecificWorker::~SpecificWorker() {
     std::cout << "Destroying SpecificWorker" << std::endl;
 }
-
 bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params) {
     return true;
 }
-
 void SpecificWorker::initialize(int period) {
     QRect dimensions(-5000, -2500, 10000, 5000);
     viewer = new AbstractGraphicViewer(this, dimensions);
@@ -73,7 +65,9 @@ void SpecificWorker::compute() {
         robot_polygon->setRotation(bState.alpha * 180 / M_PI);
         robot_polygon->setPos(bState.x, bState.z);
         auto ldata = laser_proxy->getLaserData();
-        bool contains = draw_laser(ldata);
+        QGraphicsItem* poly = draw_laser(ldata);
+
+        QPointF punto;
         switch (state) {
             case State::IDLE:
                 qInfo()<<"IDLE";
@@ -81,7 +75,7 @@ void SpecificWorker::compute() {
                 break;
             case State::FORWARD:
                 qInfo()<<"FORWARD";
-                forward(bState,ldata);
+                punto = forward(bState,ldata);
                 break;
             case State::TURN:
                 qInfo()<<"TURN";
@@ -89,7 +83,7 @@ void SpecificWorker::compute() {
                 break;
             case State::BORDER:
                 qInfo()<<"BORDER";
-                border(ldata,contains);
+                border(ldata,poly,punto);
                 break;
         }
     } catch (const Ice::Exception &e) { std::cout << e.what() << std::endl; }
@@ -99,7 +93,7 @@ void SpecificWorker::compute() {
 void SpecificWorker::turn(const RoboCompLaser::TLaserData &ldata) {
 //    qInfo()<<ldata.size();
     this->differentialrobot_proxy->setSpeedBase(0, 0.5);
-    if(ldata[ldata.size()/2].dist > 1500) {
+    if(ldata[45].dist < 1500) {
         state = State::BORDER;
         this->differentialrobot_proxy->setSpeedBase(0, 0);
     }
@@ -113,33 +107,28 @@ Eigen::Vector2f SpecificWorker::goToRobot(RoboCompGenericBase::TBaseState bState
     return m.transpose() * (targ - robot);
 }
 
-bool SpecificWorker::draw_laser(const RoboCompLaser::TLaserData &ldata) // robot coordinates
+QGraphicsItem* SpecificWorker::draw_laser(const RoboCompLaser::TLaserData &ldata) // robot coordinates
 {
-    bool contains = false;
     static QGraphicsItem *laser_polygon = nullptr;
     // code to delete any existing laser graphic element
     if (laser_polygon != nullptr) {
         viewer->scene.removeItem(laser_polygon);
     }
     QPolygonF poly;
-    // code to fill poly with the laser polar coordinates (angle, dist) transformed to cartesian coordinates (x,y), all in the robot's  // reference system
+    // code to fill poly with the laser polar coordinates (angle, dist) transformed to cartesian coordinates (x,y), all in the robot's
+    // reference system
     poly << QPointF(0, 0);
     for (auto &p: ldata) {
         float x = p.dist * sin(p.angle);
         float y = p.dist * cos(p.angle);
         poly << QPoint(x, y);
     }
-
-
     QColor color("LightGreen");
     color.setAlpha(40);
     laser_polygon = viewer->scene.addPolygon(laser_in_robot_polygon->mapToScene(poly), QPen(QColor("DarkGreen"), 30),
                                              QBrush(color));
     laser_polygon->setZValue(3);
-
-    if (poly.contains(target.pos))  // point to check. Must be in robot’s coordinate system
-        contains = true;
-    return contains;
+    return laser_polygon;
 }
 
 int SpecificWorker::startup_check() {
@@ -155,7 +144,7 @@ void SpecificWorker::new_target_slot(QPointF p) {
     target.activo = true;
 }
 
-void SpecificWorker::forward(RoboCompGenericBase::TBaseState bState, RoboCompLaser::TLaserData &ldata) {
+QPointF SpecificWorker::forward(RoboCompGenericBase::TBaseState bState, RoboCompLaser::TLaserData &ldata) {
     //pasar target a coordenadas del robot
     Eigen::Vector2f punto = goToRobot(bState);
     //calcular el angulo que forma el robot con el tagert
@@ -170,26 +159,29 @@ void SpecificWorker::forward(RoboCompGenericBase::TBaseState bState, RoboCompLas
     float adv_speed = 1000 * expresion * close_to_target;
     this->differentialrobot_proxy->setSpeedBase(adv_speed, beta);
     //comprobar si hay un obstáculo delante
-    if(ldata[ldata.size()/2].dist < 700) {
+    if(ldata[ldata.size()/2].dist < 600) {
         state = State::TURN;
         this->differentialrobot_proxy->setSpeedBase(0, 0);
     }
+    if(ldata[45].dist < 600)
+        state = State::BORDER;
     for(int i=1;i<15;i++) ldata.erase(ldata.begin());
-    std::cout<<"distancia: "<<ldata.front().dist<<std::endl;
+    //std::cout<<"distancia: "<<ldata.front().dist<<std::endl;
     if (dist < 300) {
         target.activo = false;
         this->differentialrobot_proxy->setSpeedBase(0, 0);
         state = State::IDLE;
     }
+    return QPointF(punto.x(),punto.y());
 }
-void SpecificWorker::border(const RoboCompLaser::TLaserData &ldata, bool contains) {
-    if(!contains) {
-        if (ldata[ldata.size() / 4].dist < 400)
-            this->differentialrobot_proxy->setSpeedBase(400, 0.5);
-        else if (ldata[ldata.size() / 4].dist > 500)
-            this->differentialrobot_proxy->setSpeedBase(400, -0.5);
+void SpecificWorker::border(const RoboCompLaser::TLaserData &ldata, QGraphicsItem* poly, QPointF punto) {
+    if(!poly->contains(target.pos)||ldata[45].dist < 400) {
+        if (ldata[45].dist < 300)
+            this->differentialrobot_proxy->setSpeedBase(200, 0.6);
+        else if (ldata[45].dist > 400)
+            this->differentialrobot_proxy->setSpeedBase(200, -0.6);
         else
-            this->differentialrobot_proxy->setSpeedBase(400, 0);
+            this->differentialrobot_proxy->setSpeedBase(200, 0);
     }else{
         state = State::FORWARD;
     }
