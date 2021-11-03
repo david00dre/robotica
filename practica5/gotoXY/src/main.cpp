@@ -18,11 +18,11 @@
  */
 
 
-/** \mainpage RoboComp::MyFirstComp
+/** \mainpage RoboComp::GotoXY
  *
  * \section intro_sec Introduction
  *
- * The MyFirstComp component...
+ * The GotoXY component...
  *
  * \section interface_sec Interface
  *
@@ -34,7 +34,7 @@
  * ...
  *
  * \subsection install2_ssec Compile and install
- * cd MyFirstComp
+ * cd GotoXY
  * <br>
  * cmake . && make
  * <br>
@@ -52,7 +52,7 @@
  *
  * \subsection execution_ssec Execution
  *
- * Just: "${PATH_TO_BINARY}/MyFirstComp --Ice.Config=${PATH_TO_CONFIG_FILE}"
+ * Just: "${PATH_TO_BINARY}/GotoXY --Ice.Config=${PATH_TO_CONFIG_FILE}"
  *
  * \subsection running_ssec Once running
  *
@@ -86,28 +86,28 @@
 
 
 
-class MyFirstComp : public RoboComp::Application
+class GotoXY : public RoboComp::Application
 {
 public:
-	MyFirstComp (QString prfx, bool startup_check) { prefix = prfx.toStdString(); this->startup_check_flag=startup_check; }
+	GotoXY (QString prfx, bool startup_check) { prefix = prfx.toStdString(); this->startup_check_flag=startup_check; }
 private:
 	void initialize();
 	std::string prefix;
-	MapPrx mprx;
+	TuplePrx tprx;
 	bool startup_check_flag = false;
 
 public:
 	virtual int run(int, char*[]);
 };
 
-void ::MyFirstComp::initialize()
+void ::GotoXY::initialize()
 {
 	// Config file properties read example
 	// configGetString( PROPERTY_NAME_1, property1_holder, PROPERTY_1_DEFAULT_VALUE );
 	// configGetInt( PROPERTY_NAME_2, property1_holder, PROPERTY_2_DEFAULT_VALUE );
 }
 
-int ::MyFirstComp::run(int argc, char* argv[])
+int ::GotoXY::run(int argc, char* argv[])
 {
 #ifdef USE_QTGUI
 	QApplication a(argc, argv);  // GUI application
@@ -130,8 +130,8 @@ int ::MyFirstComp::run(int argc, char* argv[])
 
 	int status=EXIT_SUCCESS;
 
-	RoboCompDifferentialRobot::DifferentialRobotPrx differentialrobot_proxy;
-	RoboCompLaser::LaserPrx laser_proxy;
+	RoboCompDifferentialRobot::DifferentialRobotPrxPtr differentialrobot_proxy;
+	RoboCompLaser::LaserPrxPtr laser_proxy;
 
 	string proxy, tmp;
 	initialize();
@@ -142,7 +142,7 @@ int ::MyFirstComp::run(int argc, char* argv[])
 		{
 			cout << "[" << PROGRAM_NAME << "]: Can't read configuration for proxy DifferentialRobotProxy\n";
 		}
-		differentialrobot_proxy = RoboCompDifferentialRobot::DifferentialRobotPrx::uncheckedCast( communicator()->stringToProxy( proxy ) );
+		differentialrobot_proxy = Ice::uncheckedCast<RoboCompDifferentialRobot::DifferentialRobotPrx>( communicator()->stringToProxy( proxy ) );
 	}
 	catch(const Ice::Exception& ex)
 	{
@@ -151,7 +151,6 @@ int ::MyFirstComp::run(int argc, char* argv[])
 	}
 	rInfo("DifferentialRobotProxy initialized Ok!");
 
-	mprx["DifferentialRobotProxy"] = (::IceProxy::Ice::Object*)(&differentialrobot_proxy);//Remote server proxy creation example
 
 	try
 	{
@@ -159,7 +158,7 @@ int ::MyFirstComp::run(int argc, char* argv[])
 		{
 			cout << "[" << PROGRAM_NAME << "]: Can't read configuration for proxy LaserProxy\n";
 		}
-		laser_proxy = RoboCompLaser::LaserPrx::uncheckedCast( communicator()->stringToProxy( proxy ) );
+		laser_proxy = Ice::uncheckedCast<RoboCompLaser::LaserPrx>( communicator()->stringToProxy( proxy ) );
 	}
 	catch(const Ice::Exception& ex)
 	{
@@ -168,9 +167,9 @@ int ::MyFirstComp::run(int argc, char* argv[])
 	}
 	rInfo("LaserProxy initialized Ok!");
 
-	mprx["LaserProxy"] = (::IceProxy::Ice::Object*)(&laser_proxy);//Remote server proxy creation example
 
-	SpecificWorker *worker = new SpecificWorker(mprx, startup_check_flag);
+	tprx = std::make_tuple(differentialrobot_proxy,laser_proxy);
+	SpecificWorker *worker = new SpecificWorker(tprx, startup_check_flag);
 	//Monitor thread
 	SpecificMonitor *monitor = new SpecificMonitor(worker,communicator());
 	QObject::connect(monitor, SIGNAL(kill()), &a, SLOT(quit()));
@@ -193,7 +192,7 @@ int ::MyFirstComp::run(int argc, char* argv[])
 				cout << "[" << PROGRAM_NAME << "]: Can't read configuration for proxy CommonBehavior\n";
 			}
 			Ice::ObjectAdapterPtr adapterCommonBehavior = communicator()->createObjectAdapterWithEndpoints("commonbehavior", tmp);
-			CommonBehaviorI *commonbehaviorI = new CommonBehaviorI(monitor);
+			auto commonbehaviorI = std::make_shared<CommonBehaviorI>(monitor);
 			adapterCommonBehavior->add(commonbehaviorI, Ice::stringToIdentity("commonbehavior"));
 			adapterCommonBehavior->activate();
 		}
@@ -286,7 +285,7 @@ int main(int argc, char* argv[])
 		}
 
 	}
-	::MyFirstComp app(prefix, startup_check_flag);
+	::GotoXY app(prefix, startup_check_flag);
 
 	return app.main(argc, argv, configFile.toLocal8Bit().data());
 }

@@ -22,6 +22,13 @@
 #include "config.h"
 #include <stdint.h>
 #include <qlog/qlog.h>
+
+#if Qt5_FOUND
+	#include <QtWidgets>
+#else
+	#include <QtGui>
+#endif
+#include <ui_mainUI.h>
 #include <CommonBehavior.h>
 
 #include <DifferentialRobot.h>
@@ -33,14 +40,14 @@
 #define BASIC_PERIOD 100
 
 
-typedef map <string,::IceProxy::Ice::Object*> MapPrx;
+using TuplePrx = std::tuple<RoboCompDifferentialRobot::DifferentialRobotPrxPtr,RoboCompLaser::LaserPrxPtr>;
 
 
-class GenericWorker : public QObject
+class GenericWorker : public QWidget, public Ui_guiDlg
 {
 Q_OBJECT
 public:
-	GenericWorker(MapPrx& mprx);
+	GenericWorker(TuplePrx tprx);
 	virtual ~GenericWorker();
 	virtual void killYourSelf();
 	virtual void setPeriod(int p);
@@ -49,8 +56,8 @@ public:
 	QMutex *mutex;
 
 
-	RoboCompDifferentialRobot::DifferentialRobotPrx differentialrobot_proxy;
-	RoboCompLaser::LaserPrx laser_proxy;
+	RoboCompDifferentialRobot::DifferentialRobotPrxPtr differentialrobot_proxy;
+	RoboCompLaser::LaserPrxPtr laser_proxy;
 
 
 protected:
