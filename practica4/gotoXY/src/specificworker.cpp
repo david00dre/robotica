@@ -93,7 +93,7 @@ void SpecificWorker::compute() {
 void SpecificWorker::turn(const RoboCompLaser::TLaserData &ldata) {
 //    qInfo()<<ldata.size();
     this->differentialrobot_proxy->setSpeedBase(0, 0.5);
-    if(ldata[45].dist < 1500) {
+    if(ldata[165].dist > 1500 && ldata[45].dist < 450) {
         state = State::BORDER;
         this->differentialrobot_proxy->setSpeedBase(0, 0);
     }
@@ -159,11 +159,11 @@ QPointF SpecificWorker::forward(RoboCompGenericBase::TBaseState bState, RoboComp
     float adv_speed = 1000 * expresion * close_to_target;
     this->differentialrobot_proxy->setSpeedBase(adv_speed, beta);
     //comprobar si hay un obstáculo delante
-    if(ldata[ldata.size()/2].dist < 600) {
+    if(ldata[ldata.size()/2].dist < 550) {
         state = State::TURN;
         this->differentialrobot_proxy->setSpeedBase(0, 0);
     }
-    if(ldata[45].dist < 600)
+    if(ldata[45].dist < 650)
         state = State::BORDER;
     for(int i=1;i<15;i++) ldata.erase(ldata.begin());
     //std::cout<<"distancia: "<<ldata.front().dist<<std::endl;
@@ -176,12 +176,12 @@ QPointF SpecificWorker::forward(RoboCompGenericBase::TBaseState bState, RoboComp
 }
 void SpecificWorker::border(const RoboCompLaser::TLaserData &ldata, QGraphicsItem* poly, QPointF punto) {
     if(!poly->contains(target.pos)||ldata[45].dist < 400) {
-        if (ldata[45].dist < 300)
-            this->differentialrobot_proxy->setSpeedBase(200, 0.6);
-        else if (ldata[45].dist > 400)
-            this->differentialrobot_proxy->setSpeedBase(200, -0.6);
+        if (ldata[45].dist < 400)
+            this->differentialrobot_proxy->setSpeedBase(300, 0.7);
+        else if (ldata[45].dist > 500)
+            this->differentialrobot_proxy->setSpeedBase(300, -0.7);
         else
-            this->differentialrobot_proxy->setSpeedBase(200, 0);
+            this->differentialrobot_proxy->setSpeedBase(300, 0);
     }else{
         state = State::FORWARD;
     }
