@@ -1,4 +1,3 @@
-
 /*
  *    Copyright (C) 2021 by YOUR NAME HERE
  *
@@ -44,7 +43,8 @@ public:
     ~SpecificWorker();
     bool setParams(RoboCompCommonBehavior::ParameterList params);
     QGraphicsItem* draw_laser(const RoboCompLaser::TLaserData &ldata);
-    Eigen::Vector2f goToRobot(RoboCompGenericBase::TBaseState bState);
+    Eigen::Vector2f goToRobot(RoboCompGenericBase::TBaseState bState, Eigen::Vector2f targ);
+    Eigen::Vector2f goToWorld(RoboCompGenericBase::TBaseState bState, Eigen::Vector2f targ);
 
 
 
@@ -61,6 +61,8 @@ private:
     {
         QPointF pos;
         bool activo = false;
+        float A,B,C;
+
     };
     std::shared_ptr < InnerModel > innerModel;
     bool startup_check_flag;
@@ -72,7 +74,8 @@ private:
     QPointF last_point;
     QPointF forward(RoboCompGenericBase::TBaseState bState, RoboCompLaser::TLaserData &ldata);
     void turn(const RoboCompLaser::TLaserData &ldata);
-    void border(const RoboCompLaser::TLaserData &ldata, QGraphicsItem* poly, QPointF punto);
+    void border(const RoboCompLaser::TLaserData &ldata, QGraphicsItem* poly, QPointF punto, RoboCompGenericBase::TBaseState bState);
+    void check_free_path_to_target( const RoboCompLaser::TLaserData &ldata, const Eigen::Vector2f &goal,RoboCompGenericBase::TBaseState bState);
 
 };
 
