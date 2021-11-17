@@ -32,7 +32,7 @@
 #include <innermodel/innermodel.h>
 #include <abstract_graphic_viewer/abstract_graphic_viewer.h>
 #include <eigen3/Eigen/Dense>
-
+#include <grid2d/grid.h>
 
 
 
@@ -73,6 +73,7 @@ private:
     QPointF forward(RoboCompGenericBase::TBaseState bState, RoboCompLaser::TLaserData &ldata);
     void turn(const RoboCompLaser::TLaserData &ldata);
     void border(const RoboCompLaser::TLaserData &ldata, QGraphicsItem* poly, QPointF punto);
+    Grid grid;
 
 };
 

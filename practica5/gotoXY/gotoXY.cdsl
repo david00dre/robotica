@@ -1,5 +1,6 @@
 import "DifferentialRobot.idsl";
 import "Laser.idsl";
+import "FullPoseEstimation.idsl";
 Component GotoXY{
     Communications{
         requires DifferentialRobot, Laser;

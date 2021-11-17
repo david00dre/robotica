@@ -20,6 +20,7 @@
 #include "math.h"
 #include "stdlib.h"
 #include "time.h"
+
 /**
 * \brief Default constructor
 */
@@ -56,17 +57,24 @@ void SpecificWorker::initialize(int period) {
     } else {
         timer.start(Period);
     }
+    grid.initialize(dimensions,100, &viewer->scene, false);
+
 }
 
 void SpecificWorker::compute() {
     try {
         RoboCompGenericBase::TBaseState bState;
-        differentialrobot_proxy->getBaseState(bState);
-        robot_polygon->setRotation(bState.alpha * 180 / M_PI);
-        robot_polygon->setPos(bState.x, bState.z);
+        auto r_state = fullposeestimation_proxy->getFullPoseEuler();
+        robot_polygon->setRotation(r_state.rz*180/M_PI);
+        robot_polygon->setPos(r_state.x, r_state.y);
+
+//        differentialrobot_proxy->getBaseState(bState);
+//        robot_polygon->setRotation(bState.alpha * 180 / M_PI);
+//        robot_polygon->setPos(bState.x, bState.z);
         auto ldata = laser_proxy->getLaserData();
         QGraphicsItem* poly = draw_laser(ldata);
 
+//        Grid grid
         QPointF punto;
         switch (state) {
             case State::IDLE:
