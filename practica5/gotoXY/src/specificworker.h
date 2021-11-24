@@ -33,6 +33,7 @@
 #include <abstract_graphic_viewer/abstract_graphic_viewer.h>
 #include <eigen3/Eigen/Dense>
 #include <grid2d/grid.h>
+#include <cppitertools/range.hpp>
 
 
 
@@ -44,7 +45,9 @@ public:
     ~SpecificWorker();
     bool setParams(RoboCompCommonBehavior::ParameterList params);
     QGraphicsItem* draw_laser(const RoboCompLaser::TLaserData &ldata);
-    Eigen::Vector2f goToRobot(RoboCompGenericBase::TBaseState bState);
+    Eigen::Vector2f goToRobot(RoboCompFullPoseEstimation::FullPoseEuler r_state );
+    Eigen::Vector2f goToWorld(RoboCompFullPoseEstimation::FullPoseEuler r_state, Eigen::Vector2f targ );
+
 
 
 
@@ -70,10 +73,11 @@ private:
     QGraphicsRectItem *laser_in_robot_polygon;
     Target target;
     QPointF last_point;
-    QPointF forward(RoboCompGenericBase::TBaseState bState, RoboCompLaser::TLaserData &ldata);
+    QPointF forward(RoboCompFullPoseEstimation::FullPoseEuler r_state , RoboCompLaser::TLaserData &ldata);
     void turn(const RoboCompLaser::TLaserData &ldata);
     void border(const RoboCompLaser::TLaserData &ldata, QGraphicsItem* poly, QPointF punto);
     Grid grid;
+    void update_map(RoboCompFullPoseEstimation::FullPoseEuler r_state, const RoboCompLaser::TLaserData &ldata);
 
 };
 

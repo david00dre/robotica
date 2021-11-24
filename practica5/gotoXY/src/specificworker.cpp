@@ -44,9 +44,9 @@ void SpecificWorker::initialize(int period) {
     laser_in_robot_polygon = new QGraphicsRectItem(-10, 10, 20, 20, robot_polygon);
     laser_in_robot_polygon->setPos(0, 190);     // move this to abstract
     try {
-        RoboCompGenericBase::TBaseState bState;
-        differentialrobot_proxy->getBaseState(bState);
-        last_point = QPointF(bState.x, bState.z);
+        RoboCompGenericBase::TBaseState r_state ;
+        differentialrobot_proxy->getBaseState(r_state );
+        last_point = QPointF(r_state .x, r_state .z);
     }
     catch (const Ice::Exception &e) { std::cout << e.what() << std::endl; }
     connect(viewer, &AbstractGraphicViewer::new_mouse_coordinates, this, &SpecificWorker::new_target_slot);
@@ -63,14 +63,13 @@ void SpecificWorker::initialize(int period) {
 
 void SpecificWorker::compute() {
     try {
-        RoboCompGenericBase::TBaseState bState;
         auto r_state = fullposeestimation_proxy->getFullPoseEuler();
         robot_polygon->setRotation(r_state.rz*180/M_PI);
         robot_polygon->setPos(r_state.x, r_state.y);
 
-//        differentialrobot_proxy->getBaseState(bState);
-//        robot_polygon->setRotation(bState.alpha * 180 / M_PI);
-//        robot_polygon->setPos(bState.x, bState.z);
+//        differentialrobot_proxy->getBaseState(r_state );
+//        robot_polygon->setRotation(r_state .alpha * 180 / M_PI);
+//        robot_polygon->setPos(r_state .x, r_state .z);
         auto ldata = laser_proxy->getLaserData();
         QGraphicsItem* poly = draw_laser(ldata);
 
@@ -83,7 +82,7 @@ void SpecificWorker::compute() {
                 break;
             case State::FORWARD:
                 qInfo()<<"FORWARD";
-                punto = forward(bState,ldata);
+                punto = forward(r_state ,ldata);
                 break;
             case State::TURN:
                 qInfo()<<"TURN";
@@ -107,14 +106,20 @@ void SpecificWorker::turn(const RoboCompLaser::TLaserData &ldata) {
     }
 }
 
-Eigen::Vector2f SpecificWorker::goToRobot(RoboCompGenericBase::TBaseState bState) {
+Eigen::Vector2f SpecificWorker::goToRobot(RoboCompFullPoseEstimation::FullPoseEuler r_state ) {
     Eigen::Vector2f targ(target.pos.x(), target.pos.y());
-    Eigen::Vector2f robot(bState.x, bState.z);
+    Eigen::Vector2f robot(r_state .x, r_state .z);
     Eigen::Matrix2f m;
-    m << cos(bState.alpha), -sin(bState.alpha), sin(bState.alpha), cos(bState.alpha);
+    m << cos(r_state.rz), -sin(r_state.rz), sin(r_state.rz), cos(r_state.rz);
     return m.transpose() * (targ - robot);
 }
-
+Eigen::Vector2f SpecificWorker::goToWorld(RoboCompFullPoseEstimation::FullPoseEuler r_state , Eigen::Vector2f targ)
+{
+    Eigen::Vector2f robot(r_state .x, r_state .z);
+    Eigen::Matrix2f m;
+    m << cos(r_state.rz), -sin(r_state.rz), sin(r_state.rz), cos(r_state.rz);
+    return m.transpose().inverse() * targ + robot;
+}
 QGraphicsItem* SpecificWorker::draw_laser(const RoboCompLaser::TLaserData &ldata) // robot coordinates
 {
     static QGraphicsItem *laser_polygon = nullptr;
@@ -152,9 +157,9 @@ void SpecificWorker::new_target_slot(QPointF p) {
     target.activo = true;
 }
 
-QPointF SpecificWorker::forward(RoboCompGenericBase::TBaseState bState, RoboCompLaser::TLaserData &ldata) {
+QPointF SpecificWorker::forward(RoboCompFullPoseEstimation::FullPoseEuler r_state , RoboCompLaser::TLaserData &ldata) {
     //pasar target a coordenadas del robot
-    Eigen::Vector2f punto = goToRobot(bState);
+    Eigen::Vector2f punto = goToRobot(r_state );
     //calcular el angulo que forma el robot con el tagert
     float beta = atan2(punto.x(), punto.y());
     float dist = punto.norm();
@@ -193,5 +198,43 @@ void SpecificWorker::border(const RoboCompLaser::TLaserData &ldata, QGraphicsIte
     }else{
         state = State::FORWARD;
     }
+}
+
+void SpecificWorker::update_map(RoboCompFullPoseEstimation::FullPoseEuler r_state, const RoboCompLaser::TLaserData &ldata){
+    Eigen::Vector2f lw;
+    for(const auto &l : ldata)
+    {
+        if(l.dist > ROBOT_LENGTH/2)
+        {
+            Eigen::Vector2f tip(l.dist*sin(l.angle), l.dist*cos(l.angle));
+            Eigen::Vector2f p = goToWorld(r_state, tip);
+            int target_kx = (p.x() - grid.dim.left()) / grid.TILE_SIZE;
+            int target_kz = (p.y() - grid.dim.bottom()) / grid.TILE_SIZE;
+            int last_kx = -1000000;
+            int last_kz = -1000000;
+
+
+//            grid.getCell()
+
+
+
+            int num_steps = ceil(l.dist/(grid.TILE_SIZE/2.0));
+            for(const auto &&step : iter::range(0.0, 1.0-(1.0/num_steps), 1.0/num_steps))
+            {
+                Eigen::Vector2f p = goToWorld(r_state, tip * step);
+                int kx = (p.x() - grid.dim.left()) / grid.TILE_SIZE;
+                int kz = (p.y() - grid.dim.bottom()) / grid.TILE_SIZE;
+                if(kx != last_kx and kx != target_kx and kz != last_kz and kz != target_kz)
+                    grid.add_miss(goToWorld(r_state, tip * step));
+                last_kx = kx;
+                last_kz = kz;
+            }
+            if(l.dist <= 4000)
+                grid.add_hit(goToWorld(r_state, tip));
+            // else
+            //     grid.add_miss(from_robot_to_world(tip));
+        }
+    }
+
 }
 
