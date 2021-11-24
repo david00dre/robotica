@@ -131,6 +131,7 @@ int ::GotoXY::run(int argc, char* argv[])
 	int status=EXIT_SUCCESS;
 
 	RoboCompDifferentialRobot::DifferentialRobotPrxPtr differentialrobot_proxy;
+	RoboCompFullPoseEstimation::FullPoseEstimationPrxPtr fullposeestimation_proxy;
 	RoboCompLaser::LaserPrxPtr laser_proxy;
 
 	string proxy, tmp;
@@ -154,6 +155,22 @@ int ::GotoXY::run(int argc, char* argv[])
 
 	try
 	{
+		if (not GenericMonitor::configGetString(communicator(), prefix, "FullPoseEstimationProxy", proxy, ""))
+		{
+			cout << "[" << PROGRAM_NAME << "]: Can't read configuration for proxy FullPoseEstimationProxy\n";
+		}
+		fullposeestimation_proxy = Ice::uncheckedCast<RoboCompFullPoseEstimation::FullPoseEstimationPrx>( communicator()->stringToProxy( proxy ) );
+	}
+	catch(const Ice::Exception& ex)
+	{
+		cout << "[" << PROGRAM_NAME << "]: Exception creating proxy FullPoseEstimation: " << ex;
+		return EXIT_FAILURE;
+	}
+	rInfo("FullPoseEstimationProxy initialized Ok!");
+
+
+	try
+	{
 		if (not GenericMonitor::configGetString(communicator(), prefix, "LaserProxy", proxy, ""))
 		{
 			cout << "[" << PROGRAM_NAME << "]: Can't read configuration for proxy LaserProxy\n";
@@ -168,7 +185,7 @@ int ::GotoXY::run(int argc, char* argv[])
 	rInfo("LaserProxy initialized Ok!");
 
 
-	tprx = std::make_tuple(differentialrobot_proxy,laser_proxy);
+	tprx = std::make_tuple(differentialrobot_proxy,fullposeestimation_proxy,laser_proxy);
 	SpecificWorker *worker = new SpecificWorker(tprx, startup_check_flag);
 	//Monitor thread
 	SpecificMonitor *monitor = new SpecificMonitor(worker,communicator());
