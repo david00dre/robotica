@@ -58,7 +58,7 @@ public slots:
     void new_target_slot(QPointF p);
 
 private:
-    enum class State {IDLE,FORWARD ,TURN, BORDER };
+    enum class State {IDLE,FORWARD ,TURN, BORDER, EXPLORE};
     State state = State::IDLE;
     struct Target
     {
@@ -78,6 +78,7 @@ private:
     void border(const RoboCompLaser::TLaserData &ldata, QGraphicsItem* poly, QPointF punto);
     Grid grid;
     void update_map(RoboCompFullPoseEstimation::FullPoseEuler r_state, const RoboCompLaser::TLaserData &ldata);
+    int explore(RoboCompFullPoseEstimation::FullPoseEuler r_state, const RoboCompLaser::TLaserData &ldata);
 
 };
 

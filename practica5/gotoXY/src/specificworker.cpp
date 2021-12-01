@@ -76,6 +76,11 @@ void SpecificWorker::compute() {
 //        Grid grid
         QPointF punto;
         switch (state) {
+            case State::EXPLORE:
+                qInfo()<<"IDLE";
+                if(explore(r_state, ldata)==0)
+                    state=State::IDLE;
+                break;
             case State::IDLE:
                 qInfo()<<"IDLE";
                 if(target.activo) state = State::FORWARD;
@@ -214,7 +219,7 @@ void SpecificWorker::update_map(RoboCompFullPoseEstimation::FullPoseEuler r_stat
             int last_kz = -1000000;
 
 
-//            grid.getCell()
+            grid.percentage_changed();
 
 
 
@@ -236,5 +241,24 @@ void SpecificWorker::update_map(RoboCompFullPoseEstimation::FullPoseEuler r_stat
         }
     }
 
+}
+
+int SpecificWorker::explore(RoboCompFullPoseEstimation::FullPoseEuler r_state, const RoboCompLaser::TLaserData &ldata) {
+
+    auto initial_angle = (r_state.rz < 0) ? (2 * M_PI + r_state.rz) : r_state.rz;
+
+
+    float current = (r_state.rz < 0) ? (2 * M_PI + r_state.rz) : r_state.rz;
+
+    if (fabs(current - initial_angle) < (M_PI + 0.1) and
+        fabs(current - initial_angle) > (M_PI - 0.1))
+    float porct=grid.percentage_changed();
+
+    update_map(r_state, ldata);
+
+    if(porct==grid.percentage_changed())
+        return 0;
+    else
+        return 1;
 }
 
