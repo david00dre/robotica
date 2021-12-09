@@ -21,6 +21,8 @@
 #include "stdlib.h"
 #include "time.h"
 
+
+
 /**
 * \brief Default constructor
 */
@@ -72,18 +74,16 @@ void SpecificWorker::compute() {
 //        robot_polygon->setPos(r_state .x, r_state .z);
         auto ldata = laser_proxy->getLaserData();
         QGraphicsItem* poly = draw_laser(ldata);
-
+        update_map(r_state,ldata);
 //        Grid grid
         QPointF punto;
         switch (state) {
-            case State::EXPLORE:
-                qInfo()<<"IDLE";
-                if(explore(r_state, ldata)==0)
-                    state=State::IDLE;
+            case State::TURN_INIT:
+                qInfo()<<"TURN_INIT";
+                turn_init(ldata, r_state);
                 break;
             case State::IDLE:
                 qInfo()<<"IDLE";
-                if(target.activo) state = State::FORWARD;
                 break;
             case State::FORWARD:
                 qInfo()<<"FORWARD";
@@ -102,13 +102,74 @@ void SpecificWorker::compute() {
 
 }
 
-void SpecificWorker::turn(const RoboCompLaser::TLaserData &ldata) {
-//    qInfo()<<ldata.size();
+void SpecificWorker::turn(const RoboCompLaser::TLaserData &ldata)
+{
+    //    qInfo()<<ldata.size();
     this->differentialrobot_proxy->setSpeedBase(0, 0.5);
-    if(ldata[165].dist > 1500 && ldata[45].dist < 450) {
+    if (ldata[165].dist > 1500 && ldata[45].dist < 600)
+    {
         state = State::BORDER;
         this->differentialrobot_proxy->setSpeedBase(0, 0);
     }
+}
+
+void SpecificWorker::turn_init(const RoboCompLaser::TLaserData &ldata, RoboCompFullPoseEstimation::FullPoseEuler r_state) {
+    switch (estadoturn) {
+        case 0:
+            static auto initial_angle = (r_state.rz < 0) ? (2 * M_PI + r_state.rz) : r_state.rz;
+            estadoturn=1;
+            break;
+        case 1:
+            detect_doors(ldata);
+            float current = (r_state.rz < 0) ? (2 * M_PI + r_state.rz) : r_state.rz;
+            if (fabs(current - initial_angle) < (M_PI + 0.1) and fabs(current - initial_angle) > (M_PI - 0.1)) {
+                set <Door>::iterator d;
+                d= doors.begin();
+                while (d->visited && d != doors.end()){
+                    d++;
+                }
+                if(!d->visited) {
+                    QPointF pmedio = QPoint((d->a.x() + d->b.x()) / 2, (d->a.y() + d->b.y()) / 2);
+                    target.pos = pmedio;
+                    target.activo = true;
+                    state = State::FORWARD;
+                    estadoturn = 0;
+                }else{
+                    state = State::IDLE;
+                }
+
+            }
+            break;
+
+    }
+}
+
+void SpecificWorker::detect_doors(const RoboCompLaser::TLaserData &ldata){
+
+    std::vector<float> distancias;
+
+    for (int i = 0;i<(int)ldata.size()-1;i++){
+        distancias.push_back(abs(ldata[i].dist - ldata[i+1].dist));
+    }
+
+    std::vector<QPointF> peaks;
+    for(int i = 0; i< (int)distancias.size();i++){
+        if (distancias[i]>1000)
+            peaks.push_back(QPointF(ldata[i].dist * sin(ldata[i].angle),ldata[i].dist * cos(ldata[i].angle)));
+    }
+    for(int i = 0;i<(int)peaks.size();i++) {
+        for (int k = 0; k <(int) peaks.size(); k++) {
+            float dist = (sqrt(pow(peaks[i].x() - peaks[k].x(), 2) + pow(peaks[i].y() - peaks[k].y(), 2)));
+            if (i != k && dist < 1100 && dist > 900) {
+                Door d = Door(peaks[i], peaks[k]);
+                doors.insert(d);
+            }
+
+        }
+    }
+//        sqrt(pow(x.first - y.first, 2) +
+//         pow(x.second - y.second, 2)) //Distancia entre puntos
+
 }
 
 Eigen::Vector2f SpecificWorker::goToRobot(RoboCompFullPoseEstimation::FullPoseEuler r_state ) {
@@ -157,9 +218,9 @@ int SpecificWorker::startup_check() {
 
 void SpecificWorker::new_target_slot(QPointF p) {
 //    qInfo()<< p;
-    last_point = QPointF(p.x(), p.y());
-    target.pos = p;
-    target.activo = true;
+//    last_point = QPointF(p.x(), p.y());
+//    target.pos = p;
+//    target.activo = true;
 }
 
 QPointF SpecificWorker::forward(RoboCompFullPoseEstimation::FullPoseEuler r_state , RoboCompLaser::TLaserData &ldata) {
@@ -188,7 +249,13 @@ QPointF SpecificWorker::forward(RoboCompFullPoseEstimation::FullPoseEuler r_stat
     if (dist < 300) {
         target.activo = false;
         this->differentialrobot_proxy->setSpeedBase(0, 0);
-        state = State::IDLE;
+        state = State::TURN_INIT;
+        set <Door>::iterator d;
+        d= doors.begin();
+        while (d->visited && d != doors.end()){
+            d++;
+        }
+//        *d.setvisited();
     }
     return QPointF(punto.x(),punto.y());
 }
@@ -243,22 +310,5 @@ void SpecificWorker::update_map(RoboCompFullPoseEstimation::FullPoseEuler r_stat
 
 }
 
-int SpecificWorker::explore(RoboCompFullPoseEstimation::FullPoseEuler r_state, const RoboCompLaser::TLaserData &ldata) {
 
-    auto initial_angle = (r_state.rz < 0) ? (2 * M_PI + r_state.rz) : r_state.rz;
-
-
-    float current = (r_state.rz < 0) ? (2 * M_PI + r_state.rz) : r_state.rz;
-
-    if (fabs(current - initial_angle) < (M_PI + 0.1) and
-        fabs(current - initial_angle) > (M_PI - 0.1))
-    float porct=grid.percentage_changed();
-
-    update_map(r_state, ldata);
-
-    if(porct==grid.percentage_changed())
-        return 0;
-    else
-        return 1;
-}
 

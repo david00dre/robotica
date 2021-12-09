@@ -58,13 +58,37 @@ public slots:
     void new_target_slot(QPointF p);
 
 private:
-    enum class State {IDLE,FORWARD ,TURN, BORDER, EXPLORE};
-    State state = State::IDLE;
+    enum class State {IDLE,FORWARD ,TURN, BORDER, TURN_INIT};
+    State state = State::TURN_INIT;
     struct Target
     {
         QPointF pos;
         bool activo = false;
     };
+
+    class Door {
+    public:
+        QPointF a;
+        QPointF b;
+        int room1;
+        int room2;
+        mutable bool visited;
+        Door(QPointF A, QPointF B){
+            a=A;
+            b=B;
+            room1=0;
+            room2=0;
+            visited = false;
+        }
+        void setvisited(){this->visited= true;}
+    };
+//    bool friend operator == (const Door &a,const  Door &b){
+//        if(((sqrt(pow(a.a.x() - b.a.x(), 2) + pow(a.a.y() - b.a.y(), 2)) < 100) && (sqrt(pow(a.b.x() - b.b.x(), 2) + pow(a.b.y() - b.b.y(), 2)) < 100))
+//         || ((sqrt(pow(a.a.x() - b.b.x(), 2) + pow(a.a.y() - b.b.y(), 2)) < 100) && (sqrt(pow(a.b.x() - b.a.x(), 2) + pow(a.b.y() - b.a.y(), 2)) < 100)))
+//            return true;
+//        else
+//            return false;
+//    }
     std::shared_ptr < InnerModel > innerModel;
     bool startup_check_flag;
     AbstractGraphicViewer *viewer;
@@ -75,11 +99,14 @@ private:
     QPointF last_point;
     QPointF forward(RoboCompFullPoseEstimation::FullPoseEuler r_state , RoboCompLaser::TLaserData &ldata);
     void turn(const RoboCompLaser::TLaserData &ldata);
+    void turn_init(const RoboCompLaser::TLaserData &ldata, RoboCompFullPoseEstimation::FullPoseEuler r_state);
     void border(const RoboCompLaser::TLaserData &ldata, QGraphicsItem* poly, QPointF punto);
     Grid grid;
     void update_map(RoboCompFullPoseEstimation::FullPoseEuler r_state, const RoboCompLaser::TLaserData &ldata);
     int explore(RoboCompFullPoseEstimation::FullPoseEuler r_state, const RoboCompLaser::TLaserData &ldata);
-
+    int estadoturn = 0;
+    void detect_doors(const RoboCompLaser::TLaserData &ldata);
+    std::set<Door> doors;
 };
 
 #endif
