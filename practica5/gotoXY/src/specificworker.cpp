@@ -37,12 +37,12 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params) {
     return true;
 }
 void SpecificWorker::initialize(int period) {
-    QRect dimensions(-5000, -2500, 10000, 5000);
+    QRect dimensions(-5100, -2600, 10200, 5200);
     viewer = new AbstractGraphicViewer(this, dimensions);
     this->resize(900, 450);
     robot_polygon = viewer->add_robot(ROBOT_LENGTH);
     laser_in_robot_polygon = new QGraphicsRectItem(-10, 10, 20, 20, robot_polygon);
-    laser_in_robot_polygon->setPos(0, 190);     // move this to abstract
+    laser_in_robot_polygon->setPos(0, 0);     // move this to abstract
     anguloconelobjetivo =0;
     try {
         RoboCompGenericBase::TBaseState r_state ;
@@ -73,7 +73,6 @@ void SpecificWorker::compute() {
 //        robot_polygon->setRotation(r_state .alpha * 180 / M_PI);
 //        robot_polygon->setPos(r_state .x, r_state .z);
         auto ldata = laser_proxy->getLaserData();                                                          //Vector con cada laser de visión del robot
-        get_distmin(ldata);
         QGraphicsItem* poly = draw_laser(ldata);                                                                        //Polígono del laser
         update_map(r_state,ldata);                                                                                      //Actualiza el grid para pintar
         QPointF punto;                                                                                                  //Donde se almacena el vector a un objetivo en el mundo del robot
@@ -104,7 +103,6 @@ void SpecificWorker::compute() {
 
 void SpecificWorker::turn(const RoboCompLaser::TLaserData &ldata)
 {
-    qInfo()<<anguloconelobjetivo;
     this->differentialrobot_proxy->setSpeedBase(0, 0.2*anguloconelobjetivo);                                            //Hace girar el robot
     int pos = (anguloconelobjetivo > 0) ? 78 : 550;
     if (ldata[ldata.size()/2].dist > 1000 && ldata[pos].dist > 220)                                                                 //Hasta que esté alineado con el obstaculo
@@ -136,13 +134,12 @@ void SpecificWorker::turn_init(const RoboCompLaser::TLaserData &ldata,
                     i++;
                     d = doors[i];
                 }
-                if(!d.visited) {                                                                                        //Si hay alguna puerta no visitada, va hacia ella (su punto medio)
-                    QPointF pmedio = QPoint((d.a.x() + d.b.x()) / 2, (d.a.y() + d.b.y()) / 2);
-                    qInfo()<<"PUERTA PAR VISITAR, EN CAMINO...";
+                if(!d.visited) {
+                    estadoturn = 0;
+                    qInfo()<<"PUERTA PARA VISITAR, EN CAMINO...";
                     target.pos = QPointF(d.get_external_midpoint().x(),d.get_external_midpoint().y());
                     target.activo = true;
                     state = State::FORWARD;
-                    estadoturn = 0;
                 }else{                                                                                                  //En caso contrario, detiene la búsqueda
                     state = State::IDLE;
                     qInfo()<<"NO HAY MAS PUERTAS PARA VISITAR";
@@ -165,12 +162,12 @@ void SpecificWorker::detect_doors(RoboCompFullPoseEstimation::FullPoseEuler r_st
     for (const auto &&[k, der]: iter::enumerate(derivatives))
     {
         RoboCompLaser::TData l;
-        if (der > 800)
+        if (der > 500)
         {
             l = ldata.at(k - 1);
             peaks.push_back(goToWorld(r_state,Eigen::Vector2f(l.dist * sin(l.angle), l.dist * cos(l.angle))));
         }
-        else if (der < -800)
+        else if (der < -500)
         {
             l = ldata.at(k);
             peaks.push_back(goToWorld(r_state, Eigen::Vector2f(l.dist * sin(l.angle), l.dist * cos(l.angle))));
@@ -192,20 +189,20 @@ void SpecificWorker::detect_doors(RoboCompFullPoseEstimation::FullPoseEuler r_st
 
     for(int i = 0;i<(int)peaks.size();i++) {                                                                            //Recorre cada par de posibles puntos de puerta, y aquellos que
         for (int k = 0; k <(int) peaks.size(); k++) {                                                                   //Disten entre 900 y 1100 se consideran puntos de una puerta
-            float dist = (sqrt(pow(peaks[i].x() - peaks[k].x(), 2) + pow(peaks[i].y() - peaks[k].y(), 2)));
-            qInfo()<<dist;
-            if (i != k && dist < 800 && dist > 700) {
+            float dist = distancia_entre_puntos(peaks[i],peaks[k]);
+            if (i != k && dist < 1100 && dist > 700) {
                 qInfo()<<"PUERTA ENCONTRADA";
                 Door a = Door(QPointF(peaks[i].x(),peaks[i].y()),QPointF(peaks[k].x(),peaks[k].y()));
                 bool encontrado = false;
                 for(int j =0;j<(int)doors.size()&&!encontrado;j++){                                                                       //Se recorre el vector de puertas para comprobar que no se repitan
                     Door b = doors[j];
-                    if(((sqrt(pow(a.a.x() - b.a.x(), 2) + pow(a.a.y() - b.a.y(), 2)) < 100) && (sqrt(pow(a.b.x() - b.b.x(), 2) + pow(a.b.y() - b.b.y(), 2)) < 100))  //TODO hacer eficiente
-                       || ((sqrt(pow(a.a.x() - b.b.x(), 2) + pow(a.a.y() - b.b.y(), 2)) < 100) && (sqrt(pow(a.b.x() - b.a.x(), 2) + pow(a.b.y() - b.a.y(), 2)) < 100)))
+                    QPointF mida = QPointF (a.get_midpoint().x(), a.get_midpoint().y());
+                    QPointF midb = QPointF (b.get_midpoint().x(), b.get_midpoint().y());
+                    if(distancia_entre_puntos(mida,midb))
                         encontrado = true;
                 }
                 if(!encontrado){
-                    doors.push_back(a);
+                    doors.insert(doors.end(),a);
                     qInfo()<<"PUERTA AÑADIDA";
                 }else qInfo()<<"PUERTA AÑADIDA ANTERIORMENTE";
             }
@@ -262,14 +259,13 @@ int SpecificWorker::startup_check() {
 }
 
 void SpecificWorker::new_target_slot(QPointF p) {
-//    qInfo()<< p;
 //    last_point = QPointF(p.x(), p.y());
 //    target.pos = p;
 //    target.activo = true;
 }
 
 QPointF SpecificWorker::forward(RoboCompFullPoseEstimation::FullPoseEuler r_state , RoboCompLaser::TLaserData &ldata) {
-    qInfo()<<"AVANZANDO AL PUNTO MEDIO DE LA SIGUIENTE PUERTA";
+    qInfo()<<"AVANZANDO AL PUNTO MEDIO DE LA SIGUIENTE PUERTA--------";
     Eigen::Vector2f punto = goToRobot(r_state );                                                                        //Pasa target a coordenadas del robot
     //calcular el angulo que forma el robot con el tagert
     float beta = atan2(punto.x(), punto.y());
@@ -290,26 +286,24 @@ QPointF SpecificWorker::forward(RoboCompFullPoseEstimation::FullPoseEuler r_stat
          state = State::TURN;                                                                                            //Trata de alienarse con el obstaculo
         this->differentialrobot_proxy->setSpeedBase(0, 0);
     }
-    for(int i=1;i<15;i++) ldata.erase(ldata.begin());                                                           //Borra los primeros ceros del vector de laseres para correción de error
     if (dist < 300) {                                                                                                   //Comprueba que haya llegado al objetivo
-        qInfo()<<"PUERTA ALCANZADA";
+        qInfo()<<"-----------------PUERTA ALCANZADA-----------------";
         target.activo = false;                                                                                          //Pone el objetivo a inválido, ya ha llegado
         this->differentialrobot_proxy->setSpeedBase(0, 0);
         state = State::TURN_INIT;                                                                                       //Pasa al estado en el que gira para buscar puertas
         int i =0;
         Door d= doors[i];
-        while (d.visited && i<doors.size()){                                                                            //Pone la puerta a la que ha llegado a visitada
+        while (d.visited && i<(int)doors.size()){                                                                            //Pone la puerta a la que ha llegado a visitada
             i++;                                                                                                        //(La útlima no visitada, porque las visitamos en orden )
             d = doors[i];
         }
-        d.setvisited();
+        doors[i].setvisited();
         qInfo()<<"PONIENDO PUERTA A VISITADA";
     }
     return QPointF(punto.x(),punto.y());
 }
 void SpecificWorker::border(const RoboCompLaser::TLaserData &ldata, QGraphicsItem* poly, QPointF punto) {               //TODO borrar pareametro que no se usa (punto)
     int pos = (anguloconelobjetivo < 0) ? 78 : 550;
-    qInfo()
     if(!poly->contains(target.pos) && ldata[pos].dist < 200 ) {                                                         //Comprueba que el objetivo no este a la vista ni tenga obstaculos en el camino
         if (ldata[pos].dist < 350)
             this->differentialrobot_proxy->setSpeedBase(100, 0.5*anguloconelobjetivo);
@@ -366,6 +360,14 @@ int SpecificWorker::get_distmin(const RoboCompLaser::TLaserData &ldata) {
         if(l.dist<min) min = l.dist;
     }
     return min;
+}
+
+float SpecificWorker::distancia_entre_puntos(Eigen::Vector2f a, Eigen::Vector2f b) {
+    return sqrt(pow(a.x() - b.x(), 2) + pow(a.y() - b.y(), 2));
+}
+
+float SpecificWorker::distancia_entre_puntos(QPointF a, QPointF b) {
+    return sqrt(pow(a.x() - b.x(), 2) + pow(a.y() - b.y(), 2));
 }
 
 

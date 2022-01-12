@@ -75,7 +75,7 @@ private:
             visited = false;
         }
         //Pone a visitado la puerta
-        void setvisited(){this->visited= true;}
+        void setvisited(){visited= true;}
         Eigen::Vector2f get_midpoint() const {Eigen::Vector2f p1(a.x(), a.y());                                   //Obtiene el punto medio de la puerta
             Eigen::Vector2f p2(b.x(), b.y());return p1 + ((p2-p1)/2.0);};
         Eigen::Vector2f get_external_midpoint() const                                                                   //Obtiene el punto medio de la puerta dentro de la habitacion
@@ -117,6 +117,8 @@ private:
     QGraphicsItem* draw_laser(const RoboCompLaser::TLaserData &ldata);
     Eigen::Vector2f goToRobot(RoboCompFullPoseEstimation::FullPoseEuler r_state );                                      //Pasa el objetivo almacenado en target al mundo del robot
     Eigen::Vector2f goToWorld(RoboCompFullPoseEstimation::FullPoseEuler r_state, Eigen::Vector2f targ );                //Para el parametro target a coordenadas del mundo real
+    float distancia_entre_puntos(QPointF a,QPointF b);                                                                  //OIbtiene a distancia entre dos posiciones
+    float distancia_entre_puntos(Eigen::Vector2f a,Eigen::Vector2f b);
 };
 
 #endif
