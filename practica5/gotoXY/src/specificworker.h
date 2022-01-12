@@ -34,7 +34,8 @@
 #include <eigen3/Eigen/Dense>
 #include <grid2d/grid.h>
 #include <cppitertools/range.hpp>
-
+#include <cppitertools/sliding_window.hpp>
+#include <cppitertools/enumerate.hpp>
 
 
 class SpecificWorker : public GenericWorker
@@ -44,12 +45,6 @@ public:
     SpecificWorker(TuplePrx tprx, bool startup_check);
     ~SpecificWorker();
     bool setParams(RoboCompCommonBehavior::ParameterList params);
-    QGraphicsItem* draw_laser(const RoboCompLaser::TLaserData &ldata);
-    Eigen::Vector2f goToRobot(RoboCompFullPoseEstimation::FullPoseEuler r_state );                                      //Pasa el objetivo almacenado en target al mundo del robot
-    Eigen::Vector2f goToWorld(RoboCompFullPoseEstimation::FullPoseEuler r_state, Eigen::Vector2f targ );                //Para el parametro target a coordenadas del mundo real
-
-
-
 
 public slots:
     void compute();
@@ -58,8 +53,8 @@ public slots:
     void new_target_slot(QPointF p);
 
 private:
-    enum class State {IDLE,FORWARD ,TURN, BORDER, TURN_INIT};                                                           //Estados de la máquina de estados
-    State state = State::TURN_INIT;                                                                                     //Indica el estado actual
+
+    //Clases y Structs
     struct Target                                                                                                       //Estructura para guiar el robot hacia un objetivo (target)
     {
         QPointF pos;                                                                                                    //Posición X e Y del objetivo
@@ -81,8 +76,21 @@ private:
         }
         //Pone a visitado la puerta
         void setvisited(){this->visited= true;}
+        Eigen::Vector2f get_midpoint() const {Eigen::Vector2f p1(a.x(), a.y());                                   //Obtiene el punto medio de la puerta
+            Eigen::Vector2f p2(b.x(), b.y());return p1 + ((p2-p1)/2.0);};
+        Eigen::Vector2f get_external_midpoint() const                                                                   //Obtiene el punto medio de la puerta dentro de la habitacion
+        {
+            Eigen::Vector2f p1(a.x(), a.y());Eigen::Vector2f p2(b.x(), b.y());
+            Eigen::ParametrizedLine<float, 2> r =  Eigen::ParametrizedLine<float, 2>(get_midpoint(),
+                                                                                     (p1-p2).unitOrthogonal());
+            //qInfo() << __FUNCTION__ << r.pointAt(800.0).x() << r.pointAt(800.0).y();
+            return r.pointAt(1000.0);
+        };
+
     };
 
+
+    //Patametros
     std::shared_ptr < InnerModel > innerModel;                                                                      //TODO Borrar varialbe que de momento no se usa para nada
     bool startup_check_flag;                                                                                        //Parámetro de inicialización del robot
     AbstractGraphicViewer *viewer;                                                                                  //Mapa en el que se sitúa el robot
@@ -91,16 +99,24 @@ private:
     QGraphicsRectItem *laser_in_robot_polygon;                                                                      //Polígono que representa el rango de visión del robot
     Target target;                                                                                                  //Donde se almacena el objetivo al que dirigir el robot
     QPointF last_point;                                                                                             //TODO Borrar variable que de momento no se usa para nada
+    Grid grid;                                                                                                      //Malla en la que se guardan puntos de colision del laser que identificará como paredes
+    int estadoturn = 0;                                                                                                 //0 para que turn_init guarde la posicion inicial y 1 para que realice el giro
+    std::vector<Door> doors;                                                                                            //Vector en el que se almacenan las puertas encontradas
+    enum class State {IDLE,FORWARD ,TURN, BORDER, TURN_INIT};                                                           //Estados de la máquina de estados
+    State state = State::TURN_INIT;                                                                                     //Indica el estado actual
+    int anguloconelobjetivo ;                                                                                           //1 si el angulo es positivo (objetivo a la derecha), -1 en caso contrario
+
+    //Métodos
+    int get_distmin(const RoboCompLaser::TLaserData &ldata);
     QPointF forward(RoboCompFullPoseEstimation::FullPoseEuler r_state , RoboCompLaser::TLaserData &ldata);          //Método para llevar el robot hacia el objetivo
     void turn(const RoboCompLaser::TLaserData &ldata);                                                              //Método auxiliar de fordward, alinea el robot con el obstáculo para bordearlo
     void turn_init(const RoboCompLaser::TLaserData &ldata, RoboCompFullPoseEstimation::FullPoseEuler r_state);      //Giro que realiza el robot en una habitación para reconocer más puertas
     void border(const RoboCompLaser::TLaserData &ldata, QGraphicsItem* poly, QPointF punto);                        //Método para que el robot bordee algún obstáculo
-    Grid grid;                                                                                                      //Malla en la que se guardan puntos de colision del laser que identificará como paredes
+    void detect_doors(RoboCompFullPoseEstimation::FullPoseEuler r_state, const RoboCompLaser::TLaserData &ldata);   //Método que detecta puertas y las añade en caso de que no estuvieran antes
     void update_map(RoboCompFullPoseEstimation::FullPoseEuler r_state, const RoboCompLaser::TLaserData &ldata);     //Inserta puntos de colisión (identificados como pared)
-    int explore(RoboCompFullPoseEstimation::FullPoseEuler r_state, const RoboCompLaser::TLaserData &ldata);         //TODO Borrar método que no se usa
-    int estadoturn = 0;                                                                                             //0 para que turn_init guarde la posicion inicial y 1 para que realice el giro
-    void detect_doors(const RoboCompLaser::TLaserData &ldata);                                                      //Método que detecta puertas y las añade en caso de que no estuvieran antes
-    std::vector<Door> doors;                                                                                        //Vector en el que se almacenan las puertas encontradas
+    QGraphicsItem* draw_laser(const RoboCompLaser::TLaserData &ldata);
+    Eigen::Vector2f goToRobot(RoboCompFullPoseEstimation::FullPoseEuler r_state );                                      //Pasa el objetivo almacenado en target al mundo del robot
+    Eigen::Vector2f goToWorld(RoboCompFullPoseEstimation::FullPoseEuler r_state, Eigen::Vector2f targ );                //Para el parametro target a coordenadas del mundo real
 };
 
 #endif
