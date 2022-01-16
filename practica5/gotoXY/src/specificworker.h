@@ -50,7 +50,6 @@ public slots:
     void compute();
     int startup_check();
     void initialize(int period);
-    void new_target_slot(QPointF p);
 
 private:
 
@@ -59,6 +58,7 @@ private:
     {
         QPointF pos;                                                                                                    //Posición X e Y del objetivo
         bool activo = false;                                                                                            //Indica si hay algún objetivo activo
+        float A,B,C;
     };
     class Door {                                                                                                        //Clase para representar las puertas del mapa
     public:
@@ -105,20 +105,38 @@ private:
     enum class State {IDLE,FORWARD ,TURN, BORDER, TURN_INIT};                                                           //Estados de la máquina de estados
     State state = State::TURN_INIT;                                                                                     //Indica el estado actual
     int anguloconelobjetivo ;                                                                                           //1 si el angulo es positivo (objetivo a la derecha), -1 en caso contrario
+    RoboCompGenericBase::TBaseState bstate;
 
     //Métodos
     int get_distmin(const RoboCompLaser::TLaserData &ldata);
     QPointF forward(RoboCompFullPoseEstimation::FullPoseEuler r_state , RoboCompLaser::TLaserData &ldata);          //Método para llevar el robot hacia el objetivo
     void turn(const RoboCompLaser::TLaserData &ldata);                                                              //Método auxiliar de fordward, alinea el robot con el obstáculo para bordearlo
     void turn_init(const RoboCompLaser::TLaserData &ldata, RoboCompFullPoseEstimation::FullPoseEuler r_state);      //Giro que realiza el robot en una habitación para reconocer más puertas
-    void border(const RoboCompLaser::TLaserData &ldata, QGraphicsItem* poly, QPointF punto);                        //Método para que el robot bordee algún obstáculo
+    void border(const RoboCompLaser::TLaserData &ldata, QGraphicsItem* poly);                        //Método para que el robot bordee algún obstáculo
     void detect_doors(RoboCompFullPoseEstimation::FullPoseEuler r_state, const RoboCompLaser::TLaserData &ldata);   //Método que detecta puertas y las añade en caso de que no estuvieran antes
     void update_map(RoboCompFullPoseEstimation::FullPoseEuler r_state, const RoboCompLaser::TLaserData &ldata);     //Inserta puntos de colisión (identificados como pared)
     QGraphicsItem* draw_laser(const RoboCompLaser::TLaserData &ldata);
-    Eigen::Vector2f goToRobot(RoboCompFullPoseEstimation::FullPoseEuler r_state );                                      //Pasa el objetivo almacenado en target al mundo del robot
+    Eigen::Vector2f goToRobot(RoboCompFullPoseEstimation::FullPoseEuler r_state );
+    Eigen::Vector2f goToRobot(RoboCompFullPoseEstimation::FullPoseEuler r_state, const Eigen::Vector2f &goal );         //Pasa el objetivo almacenado en target al mundo del robot
     Eigen::Vector2f goToWorld(RoboCompFullPoseEstimation::FullPoseEuler r_state, Eigen::Vector2f targ );                //Para el parametro target a coordenadas del mundo real
     float distancia_entre_puntos(QPointF a,QPointF b);                                                                  //OIbtiene a distancia entre dos posiciones
     float distancia_entre_puntos(Eigen::Vector2f a,Eigen::Vector2f b);
+    RoboCompLaser::TLaserData sector1(const RoboCompLaser::TLaserData &ldata){
+        return RoboCompLaser::TLaserData (ldata.begin(),ldata.begin()+ldata.size()/5);}
+    RoboCompLaser::TLaserData sector2(const RoboCompLaser::TLaserData &ldata){
+        return RoboCompLaser::TLaserData (ldata.begin()+ldata.size()/5,ldata.begin()+ldata.size()*2/5);
+    }
+    RoboCompLaser::TLaserData sector3(const RoboCompLaser::TLaserData &ldata){
+        return RoboCompLaser::TLaserData (ldata.begin()+ldata.size()*2/5,ldata.begin()+ldata.size()*3/5);
+    }
+    RoboCompLaser::TLaserData sector4(const RoboCompLaser::TLaserData &ldata){
+        return RoboCompLaser::TLaserData (ldata.begin()+ldata.size()*3/5,ldata.begin()+ldata.size()*4/5);
+    }
+    RoboCompLaser::TLaserData sector5(const RoboCompLaser::TLaserData &ldata){
+        return RoboCompLaser::TLaserData (ldata.begin()+ldata.size()*4/5,ldata.end());
+    }
+    void check_free_path_to_target( const RoboCompLaser::TLaserData &ldata, const Eigen::Vector2f &goal,RoboCompFullPoseEstimation::FullPoseEuler bState);
 };
+
 
 #endif
