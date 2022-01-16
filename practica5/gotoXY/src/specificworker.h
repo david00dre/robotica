@@ -74,6 +74,15 @@ private:
             room2=0;
             visited = false;
         }
+
+        Door(){
+            a=QPointF(0,0);
+            b=QPointF(0,0);
+            room1=0;
+            room2=0;
+            visited = false;
+        }
+
         //Pone a visitado la puerta
         void setvisited(){visited= true;}
         Eigen::Vector2f get_midpoint() const {Eigen::Vector2f p1(a.x(), a.y());                                   //Obtiene el punto medio de la puerta
@@ -102,10 +111,10 @@ private:
     Grid grid;                                                                                                      //Malla en la que se guardan puntos de colision del laser que identificará como paredes
     int estadoturn = 0;                                                                                                 //0 para que turn_init guarde la posicion inicial y 1 para que realice el giro
     std::vector<Door> doors;                                                                                            //Vector en el que se almacenan las puertas encontradas
+    Door door;
     enum class State {IDLE,FORWARD ,TURN, BORDER, TURN_INIT};                                                           //Estados de la máquina de estados
     State state = State::TURN_INIT;                                                                                     //Indica el estado actual
     int anguloconelobjetivo ;                                                                                           //1 si el angulo es positivo (objetivo a la derecha), -1 en caso contrario
-    RoboCompGenericBase::TBaseState bstate;
 
     //Métodos
     int get_distmin(const RoboCompLaser::TLaserData &ldata);
