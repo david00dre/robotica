@@ -128,23 +128,24 @@ private:
     Eigen::Vector2f goToRobot(RoboCompFullPoseEstimation::FullPoseEuler r_state );
     Eigen::Vector2f goToRobot(RoboCompFullPoseEstimation::FullPoseEuler r_state, const Eigen::Vector2f &goal );         //Pasa el objetivo almacenado en target al mundo del robot
     Eigen::Vector2f goToWorld(RoboCompFullPoseEstimation::FullPoseEuler r_state, Eigen::Vector2f targ );                //Para el parametro target a coordenadas del mundo real
-    float distancia_entre_puntos(QPointF a,QPointF b);                                                                  //OIbtiene a distancia entre dos posiciones
-    float distancia_entre_puntos(Eigen::Vector2f a,Eigen::Vector2f b);
-    RoboCompLaser::TLaserData sector1(const RoboCompLaser::TLaserData &ldata){
+    float distancia_entre_puntos(QPointF a,QPointF b);                                                                  //Obtiene a distancia entre dos posiciones
+    float distancia_entre_puntos(Eigen::Vector2f a,Eigen::Vector2f b);                                                  //Devuelve la distancia entre dos puntos
+    RoboCompLaser::TLaserData sector1(const RoboCompLaser::TLaserData &ldata){                                          //Obtiene el primer sector del campo de visión 
         return RoboCompLaser::TLaserData (ldata.begin(),ldata.begin()+ldata.size()/5);}
-    RoboCompLaser::TLaserData sector2(const RoboCompLaser::TLaserData &ldata){
+    RoboCompLaser::TLaserData sector2(const RoboCompLaser::TLaserData &ldata){                                           //Obtiene el segundo sector del campo de visión
         return RoboCompLaser::TLaserData (ldata.begin()+ldata.size()/5,ldata.begin()+ldata.size()*2/5);
     }
-    RoboCompLaser::TLaserData sector3(const RoboCompLaser::TLaserData &ldata){
+    RoboCompLaser::TLaserData sector3(const RoboCompLaser::TLaserData &ldata){                                           //Obtiene el tercer sector del campo de visión
         return RoboCompLaser::TLaserData (ldata.begin()+ldata.size()*2/5,ldata.begin()+ldata.size()*3/5);
     }
-    RoboCompLaser::TLaserData sector4(const RoboCompLaser::TLaserData &ldata){
+    RoboCompLaser::TLaserData sector4(const RoboCompLaser::TLaserData &ldata){                                            //Obtiene el cuarto sector del campo de visión
         return RoboCompLaser::TLaserData (ldata.begin()+ldata.size()*3/5,ldata.begin()+ldata.size()*4/5);
     }
-    RoboCompLaser::TLaserData sector5(const RoboCompLaser::TLaserData &ldata){
+    RoboCompLaser::TLaserData sector5(const RoboCompLaser::TLaserData &ldata){                                            //Obtiene el quinto sector del campo de visión
         return RoboCompLaser::TLaserData (ldata.begin()+ldata.size()*4/5,ldata.end());
     }
-    void check_free_path_to_target( const RoboCompLaser::TLaserData &ldata, const Eigen::Vector2f &goal,RoboCompFullPoseEstimation::FullPoseEuler bState);
+    void check_free_path_to_target( const RoboCompLaser::TLaserData &ldata, const Eigen::Vector2f &goal,                  //Dibuja el camino recto hacia el objetivo
+    RoboCompFullPoseEstimation::FullPoseEuler bState);
 };
 
 
