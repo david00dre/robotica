@@ -137,7 +137,6 @@ void SpecificWorker::giroAleatorio() {
     do {
         differentialrobot_proxy->setSpeedBase(0, 1.5);
         usleep(inf + rand() % (sup - inf));
-        //usleep(2000000);
         differentialrobot_proxy->setSpeedBase(350, 0);
         usleep(2000000);
         auto ldata = this->laser_proxy->getLaserData();
