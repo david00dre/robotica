@@ -120,10 +120,10 @@ void SpecificWorker::turn_init(const RoboCompLaser::TLaserData &ldata,
             detect_doors(r_state, ldata);
             float current = (r_state.rz < 0) ? (2 * M_PI + r_state.rz) : r_state.rz;
             if (fabs(current - initial_angle) < (M_PI + 0.1) and
-            fabs(current - initial_angle) > (M_PI - 0.1)) {
+            fabs(current - initial_angle) > (M_PI - 0.1)) {                                                    //Si ha hecho el giro completo
                 this->differentialrobot_proxy->setSpeedBase(0, 0);                                             //Detiene el giro del robot
                 float min=9999;
-                if(door.get_midpoint().norm() != 0){
+                if(door.get_midpoint().norm() != 0){                                                            //Si no es la primera puerta que va a visitar
                     for(auto d: doors){//Busca la puerta mas cercana no visitada
                         if(!d.visited) qInfo()<<"esta puerta no esta visitada"<<d.get_midpoint().x()<<d.get_midpoint().y();
                         if(!d.visited && distancia_entre_puntos(d.get_midpoint(), door.get_midpoint()) < min){
@@ -131,10 +131,10 @@ void SpecificWorker::turn_init(const RoboCompLaser::TLaserData &ldata,
                             door = d;
                         }
                     }
-                }else{
+                }else{                                                                                          //Si es la primera, añade la la primera del vector
                     door= doors[0];
                 }
-                if(!door.visited) {
+                if(!door.visited) {                                                                             //Si la puerta no esta visitada
                     estadoturn = 0;
 //                    qInfo()<<"PUERTA PARA VISITAR, EN CAMINO..."<<i<<"..........................................";
                     target.pos = QPointF(door.get_external_midpoint().x(),door.get_external_midpoint().y());
@@ -292,7 +292,7 @@ QPointF SpecificWorker::forward(RoboCompFullPoseEstimation::FullPoseEuler r_stat
         else {                                                                                                      //Si el objetivo esta en frente
             float min =4000;
             int i=0;
-            for(int k =0;k< (int)sector3(ldata).size();k++){
+            for(int k =0;k< (int)sector3(ldata).size();k++){    
                 if(sector3(ldata)[k].dist < min){
                     min = sector3(ldata)[k].dist;
                     i = k;
