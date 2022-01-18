@@ -125,7 +125,6 @@ void SpecificWorker::turn_init(const RoboCompLaser::TLaserData &ldata,
                 float min=9999;
                 if(door.get_midpoint().norm() != 0){                                                            //Si no es la primera puerta que va a visitar
                     for(auto d: doors){//Busca la puerta mas cercana no visitada
-                        if(!d.visited) qInfo()<<"esta puerta no esta visitada"<<d.get_midpoint().x()<<d.get_midpoint().y();
                         if(!d.visited && distancia_entre_puntos(d.get_midpoint(), door.get_midpoint()) < min){
                             min = distancia_entre_puntos(d.get_midpoint(), door.get_midpoint());
                             door = d;
