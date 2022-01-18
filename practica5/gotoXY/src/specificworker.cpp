@@ -279,7 +279,7 @@ QPointF SpecificWorker::forward(RoboCompFullPoseEstimation::FullPoseEuler r_stat
     else
         close_to_target = (dist / 1000);
     close_to_target = close_to_target* get_distmin(ldata)/1000;
-    check_free_path_to_target(ldata, Eigen::Vector2f (target.pos.x(),target.pos.y()), r_state);
+    //check_free_path_to_target(ldata, Eigen::Vector2f (target.pos.x(),target.pos.y()), r_state);
     float expresion = exp(-(pow((beta), 2) / 0.15));                                                            //Factor de reducción de velocidad a mayor ángulo con el objetivo
     float adv_speed = 600 * expresion * close_to_target;
     this->differentialrobot_proxy->setSpeedBase(adv_speed, beta);                                               //Se aplica la velocidad de avance y rotacion
